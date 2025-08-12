@@ -27,6 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let visitedCountries = [];
     let geojsonLayer;
+    let markerLayers = [];
+
+    const customIcon = L.icon({
+        iconUrl: 'images/marker.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
 
     const countrySelect = document.getElementById('country-select');
     const addCountryBtn = document.getElementById('add-country-btn');
@@ -104,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadMapData() {
         try {
-            const response = await fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json');
+            const response = await fetch('countries.geo.json');
             const geojsonData = await response.json();
             geojsonLayer = L.geoJSON(geojsonData, {
                 style: countryStyle,
@@ -127,7 +136,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateMap() {
+        // Clear existing markers
+        markerLayers.forEach(marker => {
+            map.removeLayer(marker);
+        });
+        markerLayers = [];
+
         if (geojsonLayer) {
+            geojsonLayer.eachLayer(layer => {
+                const countryName = layer.feature.properties.name;
+                if (visitedCountries.includes(countryName)) {
+                    const center = layer.getBounds().getCenter();
+                    const marker = L.marker(center, { icon: customIcon }).addTo(map);
+                    markerLayers.push(marker);
+                }
+            });
             geojsonLayer.setStyle(countryStyle);
         }
         visitedCountSpan.textContent = visitedCountries.length;
