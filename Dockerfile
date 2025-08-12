@@ -1,5 +1,5 @@
 # Build Stage
-FROM golang:1.19-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
@@ -7,9 +7,13 @@ WORKDIR /app
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 
+WORKDIR /app/backend
+
+RUN go mod tidy
+
 # Build the Go app
 # The go build command will automatically download dependencies.
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/main ./backend
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/main .
 
 # Final Stage
 FROM alpine:latest
