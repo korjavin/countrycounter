@@ -1,5 +1,7 @@
 # Country Counter
 
+[![Logo](logo.png)](https://github.com/korjavin/countrycounter)
+
 Country Counter is a Telegram Mini Web App designed for travel enthusiasts to track the countries they have visited. It provides a simple and visually appealing way to see your travel progress on a world map, optimized for a seamless mobile experience.
 
 The application is built with a lightweight Go backend and a pure JavaScript frontend, all packaged within a single Docker container for easy deployment.
