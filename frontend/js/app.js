@@ -33,8 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         iconUrl: 'images/marker.png',
         iconSize: [25, 41],
         iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
+        popupAnchor: [1, -34]
     });
 
     const countrySelect = document.getElementById('country-select');
@@ -126,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function countryStyle(feature) {
         return {
-            fillColor: visitedCountries.includes(feature.properties.name) ? 'green' : '#3388ff',
+            fillColor: visitedCountries.includes(feature.properties.name) ? '#d4ac0d' : '#f0f0f0',
             weight: 2,
             opacity: 1,
             color: 'white',
