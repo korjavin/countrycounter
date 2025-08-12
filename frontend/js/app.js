@@ -29,6 +29,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Mock data for visited countries (as backend is not ready)
     const visitedCountries = ['Germany', 'France', 'Spain']; // Example data
+    let geojsonLayer;
+    let markers = [];
+
+    const redFlagIcon = L.icon({
+        iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Red_flag_waving.svg/128px-Red_flag_waving.svg.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+    });
 
     // Later, we will fetch this from the backend and use the GeoJSON to color the map.
     // For now, this is just a placeholder.
@@ -64,7 +73,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function updateStatsAndList() {
+    async function loadMapData() {
+        try {
+            const response = await fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const geojsonData = await response.json();
+            geojsonLayer = L.geoJSON(geojsonData, {
+                style: countryStyle,
+                onEachFeature: onEachFeature
+            }).addTo(map);
+            updateMap();
+        } catch (error) {
+            console.error('Error loading GeoJSON data:', error);
+        }
+    }
+
+    function countryStyle(feature) {
+        return {
+            fillColor: visitedCountries.includes(feature.properties.name) ? 'green' : '#3388ff',
+            weight: 2,
+            opacity: 1,
+            color: 'white',
+            dashArray: '3',
+            fillOpacity: 0.7
+        };
+    }
+
+    function onEachFeature(feature, layer) {
+        // No popups for now, but we can add them later
+        // layer.bindPopup(feature.properties.name);
+    }
+
+    function updateMap() {
+        if (geojsonLayer) {
+            geojsonLayer.setStyle(countryStyle);
+        }
+
+        // Clear existing markers
+        markers.forEach(marker => map.removeLayer(marker));
+        markers = [];
+
+        // Add new markers
+        if (geojsonLayer) {
+            geojsonLayer.eachLayer(layer => {
+                const countryName = layer.feature.properties.name;
+                if (visitedCountries.includes(countryName)) {
+                    const center = layer.getBounds().getCenter();
+                    const marker = L.marker(center, { icon: redFlagIcon }).addTo(map);
+                    markers.push(marker);
+                }
+            });
+        }
+
         // Update count
         visitedCountSpan.textContent = visitedCountries.length;
 
@@ -82,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedCountry && !visitedCountries.includes(selectedCountry)) {
             visitedCountries.push(selectedCountry);
             console.log(`Simulating POST request: Add ${selectedCountry}`);
-            updateStatsAndList(); // Refresh UI
+            updateMap(); // Refresh UI
         }
     });
 
@@ -93,6 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial UI update on page load
     loadCountries();
-    updateStatsAndList();
+    loadMapData();
 });
 
