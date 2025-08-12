@@ -83,8 +83,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function addCountry(country) {
         if (!userId) {
-            console.error("Cannot add country without a user ID.");
-            updateStatus("Cannot save country without a user.", true);
+            // Standalone mode: just update the local list and map
+            if (!visitedCountries.includes(country)) {
+                visitedCountries.push(country);
+                updateMap();
+                updateStatus(`${country} added locally.`);
+            }
             return;
         }
         try {
