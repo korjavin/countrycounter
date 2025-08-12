@@ -22,33 +22,16 @@ The application is built with a lightweight Go backend and a pure JavaScript fro
 
 -   **Frontend**:
     -   Pure JavaScript (ES6+)
-    -   [Leaflet.js](https://leafletjs.com/): An open-source JavaScript library for mobile-friendly interactive maps. [1]
+    -   [Leaflet.js](https://leafletjs.com/): An open-source JavaScript library for mobile-friendly interactive maps.
     -   HTML5 & CSS3
 -   **Backend**:
     -   **Go (Golang)**: For building a simple, efficient, and reliable web server.
     -   **Standard `net/http` package**: For routing and serving files.
     -   **JSON**: For simple, file-based data storage.
 -   **Deployment**:
-    -   **Docker**: To containerize the application. [5, 6]
-    -   **GitHub Actions**: For continuous integration and deployment. [11, 12]
+    -   **Docker**: To containerize the application.
+    -   **GitHub Actions**: For continuous integration and deployment.
     -   **GitHub Container Registry (ghcr.io)**: For hosting the Docker image.
-
-## Project Structure
-/
-├── .github/
-│ └── workflows/
-│ └── docker-publish.yml
-├── backend/
-│ ├── main.go
-│ └── data.json
-├── frontend/
-│ ├── index.html
-│ ├── css/
-│ │ └── style.css
-│ └── js/
-│ └── app.js
-├── Dockerfile
-└── .dockerignore
 
 ## Getting Started
 
@@ -61,7 +44,7 @@ To run this project locally, you will need Docker installed on your machine.
     ```
 
 2.  **Set up your Telegram Bot:**
-    -   Create a new bot by talking to the [@BotFather](https://t.me/BotFather) on Telegram. [7, 19]
+    -   Create a new bot by talking to the [@BotFather](https://t.me/BotFather) on Telegram.
     -   You will receive a token for your bot. This will be needed to authenticate requests.
 
 3.  **Build and run the Docker container:**
@@ -76,6 +59,6 @@ To run this project locally, you will need Docker installed on your machine.
 ## GitHub Actions
 
 The project is configured with a GitHub Actions workflow in `.github/workflows/docker-publish.yml`. This workflow triggers on every push to the `main` branch. It performs the following steps:
-1.  Logs in to the GitHub Container Registry (ghcr.io). [12]
+1.  Logs in to the GitHub Container Registry (ghcr.io).
 2.  Builds the Docker image.
-3.  Pushes the image to `ghcr.io/korjavin/countrycounter`. [11, 13]
+3.  Pushes the image to `ghcr.io/korjavin/countrycounter`.
