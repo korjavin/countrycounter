@@ -68,9 +68,16 @@ func main() {
 	mux.Handle("/", fs)
 
 	log.Println("Starting server on :8080")
-	if err := http.ListenAndServe(":8080", mux); err != nil {
+	if err := http.ListenAndServe(":8080", loggingMiddleware(mux)); err != nil {
 		log.Fatalf("could not start server: %v", err)
 	}
+}
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
+		next.ServeHTTP(w, r)
+	})
 }
 
 func handleCountries(w http.ResponseWriter, r *http.Request) {
@@ -129,6 +136,7 @@ func addCountry(w http.ResponseWriter, r *http.Request) {
 	UserData[req.UserID] = append(UserData[req.UserID], req.Country)
 	mutex.Unlock()
 
+	log.Printf("Saving country %s for user %d", req.Country, req.UserID)
 	saveData()
 
 	w.WriteHeader(http.StatusCreated)
