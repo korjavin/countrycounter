@@ -6,11 +6,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let userId = null;
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
         userId = tg.initDataUnsafe.user.id;
+    } else {
+        // For testing in a normal browser
+        // You can manually set a user ID here, e.g., userId = 12345;
+        console.log("Telegram user data not found. Running in standalone mode.");
     }
 
-    console.log('Telegram User ID:', userId);
+    console.log('User ID:', userId);
 
-    // Initialize Leaflet map
     const map = L.map('map', {
         center: [20, 0],
         zoom: 2,
@@ -22,27 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
         maxZoom: 18,
     }).addTo(map);
 
-    L.control.attribution({
-        prefix: '<a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>',
-        position: 'bottomright'
-    }).addTo(map);
-
-    // Mock data for visited countries (as backend is not ready)
-    const visitedCountries = ['Germany', 'France', 'Spain']; // Example data
+    let visitedCountries = [];
     let geojsonLayer;
-    let markers = [];
 
-    const redFlagIcon = L.icon({
-        iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Red_flag_waving.svg/128px-Red_flag_waving.svg.png',
-        iconSize: [32, 32],
-        iconAnchor: [16, 32],
-        popupAnchor: [0, -32]
-    });
-
-    // Later, we will fetch this from the backend and use the GeoJSON to color the map.
-    // For now, this is just a placeholder.
-
-    // --- UI Elements and Data ---
     const countrySelect = document.getElementById('country-select');
     const addCountryBtn = document.getElementById('add-country-btn');
     const visitedCountSpan = document.getElementById('visited-count');
@@ -50,17 +35,62 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleListBtn = document.getElementById('toggle-list-btn');
     const visitedListDiv = document.getElementById('visited-list');
 
-    // --- Core Functions ---
-    async function loadCountries() {
+    async function getVisitedCountries() {
+        if (!userId) {
+            visitedCountries = [];
+            updateMap();
+            return;
+        }
         try {
-            const response = await fetch('all_countries');
+            const response = await fetch(`/api/countries?userId=${userId}`);
             if (!response.ok) {
+                if (response.status === 404) { // Handles new user case
+                    visitedCountries = [];
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            } else {
+                visitedCountries = await response.json();
+            }
+            updateMap();
+        } catch (error) {
+            console.error('Error fetching visited countries:', error);
+        }
+    }
+
+    async function addCountry(country) {
+        if (!userId) {
+            console.error("Cannot add country without a user ID.");
+            // Optionally, show a message to the user
+            return;
+        }
+        try {
+            const response = await fetch('/api/countries', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ userId: userId, country: country }),
+            });
+
+            if (response.status === 201) {
+                await getVisitedCountries(); // Refresh the list from the backend
+            } else {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const text = await response.text();
-            const countries = text.trim().split('\n');
+        } catch (error) {
+            console.error('Error adding country:', error);
+        }
+    }
 
-            countrySelect.innerHTML = '<option value="">Select a country</option>'; // Clear existing options
+    async function loadAllCountries() {
+        try {
+            // Assuming `all_countries.json` is in the `frontend` root
+            const response = await fetch('all_countries.json');
+            if (!response.ok) throw new Error('Failed to load all_countries.json');
+            const countries = await response.json();
+
+            countrySelect.innerHTML = '<option value="">Select a country</option>';
             countries.forEach(country => {
                 const option = document.createElement('option');
                 option.value = country;
@@ -68,23 +98,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 countrySelect.appendChild(option);
             });
         } catch (error) {
-            console.error('Error loading countries:', error);
-            // Optionally, display an error to the user in the UI
+            console.error('Error loading country list:', error);
         }
     }
 
     async function loadMapData() {
         try {
             const response = await fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
             const geojsonData = await response.json();
             geojsonLayer = L.geoJSON(geojsonData, {
                 style: countryStyle,
-                onEachFeature: onEachFeature
             }).addTo(map);
-            updateMap();
+            await getVisitedCountries(); // Fetch user data after map is ready
         } catch (error) {
             console.error('Error loading GeoJSON data:', error);
         }
@@ -101,37 +126,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    function onEachFeature(feature, layer) {
-        // No popups for now, but we can add them later
-        // layer.bindPopup(feature.properties.name);
-    }
-
     function updateMap() {
         if (geojsonLayer) {
             geojsonLayer.setStyle(countryStyle);
         }
-
-        // Clear existing markers
-        markers.forEach(marker => map.removeLayer(marker));
-        markers = [];
-
-        // Add new markers
-        if (geojsonLayer) {
-            geojsonLayer.eachLayer(layer => {
-                const countryName = layer.feature.properties.name;
-                if (visitedCountries.includes(countryName)) {
-                    const center = layer.getBounds().getCenter();
-                    const marker = L.marker(center, { icon: redFlagIcon }).addTo(map);
-                    markers.push(marker);
-                }
-            });
-        }
-
-        // Update count
         visitedCountSpan.textContent = visitedCountries.length;
-
-        // Update list
-        countriesUl.innerHTML = ''; // Clear existing list
+        countriesUl.innerHTML = '';
         visitedCountries.sort().forEach(country => {
             const li = document.createElement('li');
             li.textContent = country;
@@ -142,9 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addCountryBtn.addEventListener('click', () => {
         const selectedCountry = countrySelect.value;
         if (selectedCountry && !visitedCountries.includes(selectedCountry)) {
-            visitedCountries.push(selectedCountry);
-            console.log(`Simulating POST request: Add ${selectedCountry}`);
-            updateMap(); // Refresh UI
+            addCountry(selectedCountry);
         }
     });
 
@@ -153,8 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleListBtn.textContent = isHidden ? 'Show List' : 'Hide List';
     });
 
-    // Initial UI update on page load
-    loadCountries();
+    // Initial Load
+    loadAllCountries();
     loadMapData();
 });
 
