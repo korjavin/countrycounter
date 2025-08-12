@@ -34,37 +34,52 @@ document.addEventListener('DOMContentLoaded', () => {
     const countriesUl = document.getElementById('countries-ul');
     const toggleListBtn = document.getElementById('toggle-list-btn');
     const visitedListDiv = document.getElementById('visited-list');
+    const statusBar = document.getElementById('status-bar');
+
+    function updateStatus(message, isError = false) {
+        statusBar.textContent = message;
+        statusBar.style.backgroundColor = isError ? '#d9534f' : '#5cb85c';
+        setTimeout(() => {
+            statusBar.textContent = '';
+        }, 3000); // Hide after 3 seconds
+    }
 
     async function getVisitedCountries() {
         if (!userId) {
             visitedCountries = [];
+            updateStatus("Running in standalone mode.", true);
             updateMap();
             return;
         }
         try {
+            updateStatus("Loading visited countries...");
             const response = await fetch(`/api/countries?userId=${userId}`);
             if (!response.ok) {
                 if (response.status === 404) { // Handles new user case
                     visitedCountries = [];
+                    updateStatus("New user, ready to add countries.");
                 } else {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
             } else {
                 visitedCountries = await response.json();
+                updateStatus("Visited countries loaded.");
             }
             updateMap();
         } catch (error) {
             console.error('Error fetching visited countries:', error);
+            updateStatus(`Error: ${error.message}`, true);
         }
     }
 
     async function addCountry(country) {
         if (!userId) {
             console.error("Cannot add country without a user ID.");
-            // Optionally, show a message to the user
+            updateStatus("Cannot save country without a user.", true);
             return;
         }
         try {
+            updateStatus(`Adding ${country}...`);
             const response = await fetch('/api/countries', {
                 method: 'POST',
                 headers: {
@@ -74,12 +89,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (response.status === 201) {
+                updateStatus(`${country} added successfully!`);
                 await getVisitedCountries(); // Refresh the list from the backend
             } else {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
         } catch (error) {
             console.error('Error adding country:', error);
+            updateStatus(`Error adding ${country}: ${error.message}`, true);
         }
     }
 
