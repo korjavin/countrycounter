@@ -14,7 +14,7 @@ Your first set of tasks is to build the backend server.
 
 ### **Task 1.1: Basic HTTP Server Setup**
 
--   **Description**: Create a basic HTTP server using Go's standard `net/http` package. It should listen on port `8080`. For routing, you can use the standard `http.ServeMux` or a lightweight router like `julienschmidt/httprouter`. [9, 32]
+-   **Description**: Create a basic HTTP server using Go's standard `net/http` package. It should listen on port `8080`. For routing, you can use the standard `http.ServeMux` or a lightweight router like `julienschmidt/httprouter`.
 -   **File to Modify**: `backend/main.go`
 -   **Details**:
     -   Initialize a new router.
@@ -39,7 +39,7 @@ Your first set of tasks is to build the backend server.
 -   **Details**:
     -   Create a `loadData()` function that reads `backend/data.json` into your data structure when the server starts. If the file doesn't exist, initialize an empty data structure.
     -   Create a `saveData()` function that writes the current data structure back to `backend/data.json` in a pretty-printed JSON format. This should be called after any data modification.
-    -   Use the standard `encoding/json` package. There are also simple file-based DB libraries like `simdb` if you prefer. [14, 22]
+    -   Use the standard `encoding/json` package. There are also simple file-based DB libraries like `simdb` if you prefer.
 
 ---
 
@@ -58,7 +58,7 @@ Your first set of tasks is to build the backend server.
 -   **Description**: Configure the Go server to serve the static files for the frontend (`index.html`, CSS, and JS).
 -   **File to Modify**: `backend/main.go`
 -   **Details**:
-    -   Use `http.FileServer` to serve the `frontend` directory. [23]
+    -   Use `http.FileServer` to serve the `frontend` directory.
     -   Create a handler that serves `frontend/index.html` for the root path (`/`).
     -   Set up routes for `/css` and `/js` to serve files from the corresponding frontend subdirectories.
 
@@ -95,7 +95,7 @@ Now, build the user-facing part of the application.
 -   **Description**: Integrate Leaflet.js to display an interactive world map. Fetch the user's visited countries from the backend and color them on the map.
 -   **File to Modify**: `frontend/js/app.js`
 -   **Details**:
-    -   Initialize a Leaflet map. [1, 46]
+    -   Initialize a Leaflet map.
     -   You will need a GeoJSON file with country boundaries. You can find one online or use a service that provides map tiles.
     -   On page load, make a `fetch` request to your `GET /api/countries` endpoint.
     -   When the data is received, iterate through the GeoJSON features and apply a different style (e.g., a fill color) to the countries that are in the user's visited list.
@@ -134,7 +134,7 @@ Finally, containerize the application and set up the automated build pipeline.
 -   **Description**: Write a multi-stage `Dockerfile` to create a lean production image.
 -   **File to Create**: `Dockerfile`
 -   **Details**:
-    -   **Build Stage**: Use a `golang` base image to build the backend executable. [26]
+    -   **Build Stage**: Use a `golang` base image to build the backend executable.
     -   **Final Stage**: Use a minimal base image (like `alpine` or `scratch`). Copy the compiled Go binary from the build stage and the `frontend` directory.
     -   Expose port `8080`.
     -   Set the `CMD` to run the backend executable.
@@ -147,6 +147,6 @@ Finally, containerize the application and set up the automated build pipeline.
 -   **File to Create**: `.github/workflows/docker-publish.yml`
 -   **Details**:
     -   Trigger the workflow on `push` to the `main` branch.
-    -   Use the `docker/login-action` to log in to `ghcr.io` using the `GITHUB_TOKEN`. [12, 34]
-    -   Use the `docker/build-push-action` to build the image and push it to `ghcr.io/korjavin/countrycounter`. [29, 39]
+    -   Use the `docker/login-action` to log in to `ghcr.io` using the `GITHUB_TOKEN`.
+    -   Use the `docker/build-push-action` to build the image and push it to `ghcr.io/korjavin/countrycounter`.
     -   Tag the image with `latest`.
