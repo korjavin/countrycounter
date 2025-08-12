@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', () => {
     const tg = window.Telegram.WebApp;
     tg.ready();
@@ -94,3 +95,4 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCountries();
     updateStatsAndList();
 });
+
