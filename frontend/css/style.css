@@ -61,18 +61,3 @@ button {
     padding: 5px 10px;
     cursor: pointer;
 }
-
-.delete-btn {
-    margin-left: 10px;
-    padding: 2px 5px;
-    font-size: 12px;
-    color: white;
-    background-color: #d9534f;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-}
-
-.delete-btn:hover {
-    background-color: #c9302c;
-}
