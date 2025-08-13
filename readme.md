@@ -56,6 +56,35 @@ To run this project locally, you will need Docker installed on your machine.
 4.  **Access the application:**
     -   The application will be running and accessible through your Telegram bot's Mini App interface.
 
+## Data Persistence
+
+The application stores user data in a JSON file located at `/app/backend/data.json` inside the container. To ensure that this data is not lost when the container is stopped or removed, you should mount a Docker volume to this path.
+
+You can use a `docker-compose.yml` file to manage the container and its volume easily.
+
+1.  **Create a `docker-compose.yml` file:**
+    ```yml
+    version: '3.8'
+    services:
+      countrycounter:
+        image: ghcr.io/korjavin/countrycounter:latest
+        ports:
+          - "8080:8080"
+        volumes:
+          - countrycounter-data:/app/backend
+        restart: unless-stopped
+
+    volumes:
+      countrycounter-data:
+    ```
+
+2.  **Run the container using Docker Compose:**
+    ```sh
+    docker-compose up -d
+    ```
+
+This setup will create a named volume `countrycounter-data` on your host machine and mount it to `/app/backend` in the container. All data saved by the application will be stored in this volume, ensuring it persists across container restarts.
+
 ## GitHub Actions
 
 The project is configured with a GitHub Actions workflow in `.github/workflows/docker-publish.yml`. This workflow triggers on every push to the `main` branch. It performs the following steps:
