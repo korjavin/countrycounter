@@ -43,7 +43,7 @@ func loadData() {
 
 func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 	// Load and parse the GeoJSON file
-	raw, err := ioutil.ReadFile("countries.geo.json")
+	raw, err := ioutil.ReadFile("backend/countries.geo.json")
 	if err != nil {
 		return nil, err
 	}
