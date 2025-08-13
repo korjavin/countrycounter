@@ -113,34 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function deleteCountry(country) {
-        if (!userId) {
-            console.error("Cannot delete country without a user ID.");
-            updateStatus("Cannot delete country without a user.", true);
-            return;
-        }
-        try {
-            updateStatus(`Deleting ${country}...`);
-            const response = await fetch('/api/countries', {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ userId: userId, country: country }),
-            });
-
-            if (response.ok) {
-                updateStatus(`${country} deleted successfully!`);
-                await getVisitedCountries(); // Refresh the list from the backend
-            } else {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-        } catch (error) {
-            console.error('Error deleting country:', error);
-            updateStatus(`Error deleting ${country}: ${error.message}`, true);
-        }
-    }
-
     async function loadAllCountries() {
         try {
             // Assuming `all_countries.json` is in the `frontend` root
@@ -193,18 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
         visitedCountries.sort().forEach(country => {
             const li = document.createElement('li');
             li.textContent = country;
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'Delete';
-            deleteBtn.className = 'delete-btn';
-            deleteBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevents any parent handlers from being notified of the event.
-                if (confirm(`Are you sure you want to delete ${country}?`)) {
-                    deleteCountry(country);
-                }
-            });
-
-            li.appendChild(deleteBtn);
             countriesUl.appendChild(li);
         });
     }
