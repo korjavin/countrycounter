@@ -1,0 +1,15 @@
+{
+  "name": "country-counter-e2e",
+  "version": "1.0.0",
+  "description": "E2E tests for Country Counter",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.45.0"
+  }
+}
