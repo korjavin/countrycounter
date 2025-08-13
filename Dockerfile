@@ -22,6 +22,8 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
 
+RUN mkdir -p backend
+
 # Copy the binary from the builder stage
 COPY --from=builder /app/main .
 
