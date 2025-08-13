@@ -52,27 +52,14 @@ body {
     z-index: 1000;
 }
 
-#country-select {
+#country-input {
     width: 200px;
     padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
 }
 
 button {
     padding: 5px 10px;
     cursor: pointer;
-}
-
-.delete-btn {
-    margin-left: 10px;
-    padding: 2px 5px;
-    font-size: 12px;
-    color: white;
-    background-color: #d9534f;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-}
-
-.delete-btn:hover {
-    background-color: #c9302c;
 }

@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -86,8 +88,6 @@ func handleCountries(w http.ResponseWriter, r *http.Request) {
 		getCountries(w, r)
 	case http.MethodPost:
 		addCountry(w, r)
-	case http.MethodDelete:
-		deleteCountry(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -192,4 +192,94 @@ func deleteCountry(w http.ResponseWriter, r *http.Request) {
 	saveData()
 
 	w.WriteHeader(http.StatusOK)
+}
+func startTelegramBot() {
+	token := os.Getenv("TELEGRAM_BOT_TOKEN")
+	if token == "" {
+		log.Println("TELEGRAM_BOT_TOKEN not set, skipping bot initialization.")
+		return
+	}
+
+	bot, err := tgbotapi.NewBotAPI(token)
+	if err != nil {
+		log.Printf("Error initializing bot: %v", err)
+		return
+	}
+
+	bot.Debug = true
+	log.Printf("Authorized on account %s", bot.Self.UserName)
+
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = 60
+
+	updates := bot.GetUpdatesChan(u)
+
+	for update := range updates {
+		if update.Message == nil { // ignore any non-Message updates
+			continue
+		}
+
+		if !update.Message.IsCommand() {
+			continue
+		}
+
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+		switch update.Message.Command() {
+		case "map":
+			userID := update.Message.From.ID
+			mutex.Lock()
+			countries, ok := UserData[userID]
+			mutex.Unlock()
+
+			if !ok || len(countries) == 0 {
+				msg.Text = "You haven't added any countries yet. Use the web app to add some!"
+				if _, err := bot.Send(msg); err != nil {
+					log.Printf("Error sending message: %v", err)
+				}
+			} else {
+				// Generate the map image
+				photoBytes, err := generateMapImage(countries)
+				if err != nil {
+					log.Printf("Error generating map image: %v", err)
+					msg.Text = "Sorry, I couldn't generate your map."
+					if _, err := bot.Send(msg); err != nil {
+						log.Printf("Error sending message: %v", err)
+					}
+				} else {
+					photo := tgbotapi.NewPhoto(update.Message.Chat.ID, tgbotapi.FileBytes{
+						Name:  "map.png",
+						Bytes: photoBytes.Bytes(),
+					})
+					photo.Caption = fmt.Sprintf("@%s here is your map of %d visited countries!", update.Message.From.UserName, len(countries))
+					if _, err := bot.Send(photo); err != nil {
+						log.Printf("Error sending photo: %v", err)
+					}
+				}
+			}
+		case "list":
+			userID := update.Message.From.ID
+			mutex.Lock()
+			countries, ok := UserData[userID]
+			mutex.Unlock()
+
+			if !ok || len(countries) == 0 {
+				msg.Text = "You haven't added any countries yet. Use the web app to add some!"
+			} else {
+				var countryList strings.Builder
+				for _, country := range countries {
+					countryList.WriteString("- " + country + ",\n")
+				}
+
+				msg.Text = fmt.Sprintf("@%s here is your list:\n%s", update.Message.From.UserName, countryList.String())
+			}
+			if _, err := bot.Send(msg); err != nil {
+				log.Printf("Error sending message: %v", err)
+			}
+		default:
+			msg.Text = "I don't know that command."
+			if _, err := bot.Send(msg); err != nil {
+				log.Printf("Error sending message: %v", err)
+			}
+		}
+	}
 }
