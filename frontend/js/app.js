@@ -63,7 +63,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         try {
             updateStatus("Loading visited countries...");
-            const response = await fetch(`/api/countries?userId=${userId}`);
+            const response = await fetch(`/api/countries`, {
+                headers: {
+                    'Authorization': `tma ${tg.initData}`
+                }
+            });
             if (!response.ok) {
                 if (response.status === 404) { // Handles new user case
                     visitedCountries = [];
@@ -98,8 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `tma ${tg.initData}`
                 },
-                body: JSON.stringify({ userId: userId, country: country }),
+                body: JSON.stringify({ country: country }),
             });
 
             if (response.status === 201) {

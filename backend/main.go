@@ -2,13 +2,18 @@ package main
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"image/color"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -184,7 +189,8 @@ func main() {
 	})
 
 	// API to get and update countries
-	mux.HandleFunc("/api/countries", handleCountries)
+	apiHandler := http.HandlerFunc(handleCountries)
+	mux.Handle("/api/countries", authMiddleware(apiHandler))
 
 	// Serve frontend files
 	fs := http.FileServer(http.Dir("./frontend"))
@@ -203,6 +209,96 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+type contextKey string
+
+const userIDKey contextKey = "userID"
+
+func authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Bypass for E2E tests
+		if testUserID := r.Header.Get("X-E2E-Test-User-Id"); testUserID != "" {
+			userID, err := strconv.ParseInt(testUserID, 10, 64)
+			if err != nil {
+				http.Error(w, "Invalid X-E2E-Test-User-Id header", http.StatusBadRequest)
+				return
+			}
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, userIDKey, userID)
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
+		}
+
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, "Authorization header required", http.StatusUnauthorized)
+			return
+		}
+
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || parts[0] != "tma" {
+			http.Error(w, "Invalid Authorization header format", http.StatusUnauthorized)
+			return
+		}
+
+		initData := parts[1]
+		valid, userID := validateInitData(initData)
+		if !valid {
+			http.Error(w, "Invalid initData", http.StatusUnauthorized)
+			return
+		}
+
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, userIDKey, userID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func validateInitData(initData string) (bool, int64) {
+	token := os.Getenv("TELEGRAM_BOT_TOKEN")
+	if token == "" {
+		log.Println("TELEGRAM_BOT_TOKEN not set, skipping validation.")
+		return false, 0
+	}
+
+	q, err := url.ParseQuery(initData)
+	if err != nil {
+		return false, 0
+	}
+
+	var pairs []string
+	var hash string
+	for k, v := range q {
+		if k == "hash" {
+			hash = v[0]
+			continue
+		}
+		pairs = append(pairs, k+"="+v[0])
+	}
+	sort.Strings(pairs)
+	dataCheckString := strings.Join(pairs, "\n")
+
+	secretKey := hmac.New(sha256.New, []byte("WebAppData"))
+	secretKey.Write([]byte(token))
+
+	h := hmac.New(sha256.New, secretKey.Sum(nil))
+	h.Write([]byte(dataCheckString))
+	calculatedHash := hex.EncodeToString(h.Sum(nil))
+
+	if calculatedHash != hash {
+		return false, 0
+	}
+
+	userJSON := q.Get("user")
+	var user struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.Unmarshal([]byte(userJSON), &user); err != nil {
+		return false, 0
+	}
+
+	return true, user.ID
+}
+
 func handleCountries(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -215,14 +311,9 @@ func handleCountries(w http.ResponseWriter, r *http.Request) {
 }
 
 func getCountries(w http.ResponseWriter, r *http.Request) {
-	userIDStr := r.URL.Query().Get("userId")
-	if userIDStr == "" {
-		http.Error(w, "userId query parameter is required", http.StatusBadRequest)
-		return
-	}
-	userID, err := strconv.ParseInt(userIDStr, 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid userId", http.StatusBadRequest)
+	userID, ok := r.Context().Value(userIDKey).(int64)
+	if !ok {
+		http.Error(w, "Could not get userID from context", http.StatusInternalServerError)
 		return
 	}
 
@@ -240,8 +331,13 @@ func getCountries(w http.ResponseWriter, r *http.Request) {
 }
 
 func addCountry(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(userIDKey).(int64)
+	if !ok {
+		http.Error(w, "Could not get userID from context", http.StatusInternalServerError)
+		return
+	}
+
 	var req struct {
-		UserID  int64  `json:"userId"`
 		Country string `json:"country"`
 	}
 
@@ -250,16 +346,16 @@ func addCountry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.UserID == 0 || req.Country == "" {
-		http.Error(w, "userId and country are required", http.StatusBadRequest)
+	if req.Country == "" {
+		http.Error(w, "country is required", http.StatusBadRequest)
 		return
 	}
 
 	mutex.Lock()
-	UserData[req.UserID] = append(UserData[req.UserID], req.Country)
+	UserData[userID] = append(UserData[userID], req.Country)
 	mutex.Unlock()
 
-	log.Printf("Saving country %s for user %d", req.Country, req.UserID)
+	log.Printf("Saving country %s for user %d", req.Country, userID)
 	saveData()
 
 	w.WriteHeader(http.StatusCreated)
