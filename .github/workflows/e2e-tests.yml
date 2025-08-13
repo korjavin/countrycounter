@@ -1,0 +1,29 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Build and run application container
+        run: |
+          docker build -t country-counter-app .
+          docker run -d --name country-counter -p 8080:8080 --network host country-counter-app
+
+      - name: Run Playwright tests
+        run: |
+          docker run --rm --network host -v $(pwd):/work/ -w /work/ mcr.microsoft.com/playwright:v1.45.0-jammy /bin/sh -c "npm install && npx playwright test"
+
+      - name: Stop application container
+        if: always()
+        run: |
+          docker stop country-counter
+          docker rm country-counter
