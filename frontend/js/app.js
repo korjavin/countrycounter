@@ -37,7 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 
-    const countrySelect = document.getElementById('country-select');
+    const countryInput = document.getElementById('country-input');
+    const countryList = document.getElementById('country-list');
     const addCountryBtn = document.getElementById('add-country-btn');
     const visitedCountSpan = document.getElementById('visited-count');
     const countriesUl = document.getElementById('countries-ul');
@@ -115,17 +116,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadAllCountries() {
         try {
-            // Assuming `all_countries.json` is in the `frontend` root
             const response = await fetch('all_countries.json');
             if (!response.ok) throw new Error('Failed to load all_countries.json');
             const countries = await response.json();
 
-            countrySelect.innerHTML = '<option value="">Select a country</option>';
+            countryList.innerHTML = '';
             countries.forEach(country => {
                 const option = document.createElement('option');
                 option.value = country;
-                option.textContent = country;
-                countrySelect.appendChild(option);
+                countryList.appendChild(option);
             });
         } catch (error) {
             console.error('Error loading country list:', error);
@@ -170,9 +169,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     addCountryBtn.addEventListener('click', () => {
-        const selectedCountry = countrySelect.value;
+        const selectedCountry = countryInput.value;
         if (selectedCountry && !visitedCountries.includes(selectedCountry)) {
             addCountry(selectedCountry);
+            countryInput.value = ''; // Clear the input after adding
         }
     });
 
