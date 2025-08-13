@@ -3,12 +3,14 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"image/color"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/fogleman/gg"
@@ -320,11 +322,30 @@ func startTelegramBot() {
 						Name:  "map.png",
 						Bytes: photoBytes.Bytes(),
 					})
-					photo.Caption = "Here is your map of visited countries!"
+					photo.Caption = fmt.Sprintf("@%s here is your map of %d visited countries!", update.Message.From.UserName, len(countries))
 					if _, err := bot.Send(photo); err != nil {
 						log.Printf("Error sending photo: %v", err)
 					}
 				}
+			}
+		case "list":
+			userID := update.Message.From.ID
+			mutex.Lock()
+			countries, ok := UserData[userID]
+			mutex.Unlock()
+
+			if !ok || len(countries) == 0 {
+				msg.Text = "You haven't added any countries yet. Use the web app to add some!"
+			} else {
+				var countryList strings.Builder
+				for _, country := range countries {
+					countryList.WriteString("- " + country + ",\n")
+				}
+
+				msg.Text = fmt.Sprintf("@%s here is your list:\n%s", update.Message.From.UserName, countryList.String())
+			}
+			if _, err := bot.Send(msg); err != nil {
+				log.Printf("Error sending message: %v", err)
 			}
 		default:
 			msg.Text = "I don't know that command."
