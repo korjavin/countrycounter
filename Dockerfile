@@ -29,6 +29,7 @@ COPY --from=builder /app/main .
 
 # Copy frontend assets from the builder stage
 COPY --from=builder /app/frontend ./frontend
+COPY --from=builder /app/backend/countries.geo.json ./data
 
 EXPOSE 8080
 

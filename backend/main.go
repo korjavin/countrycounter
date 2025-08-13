@@ -13,7 +13,7 @@ import (
 
 	"github.com/fogleman/gg"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/paulmach/go.geojson"
+	geojson "github.com/paulmach/go.geojson"
 )
 
 // UserData holds the mapping from a Telegram user ID to a list of visited countries.
@@ -43,7 +43,7 @@ func loadData() {
 
 func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 	// Load and parse the GeoJSON file
-	raw, err := ioutil.ReadFile("backend/countries.geo.json")
+	raw, err := ioutil.ReadFile("data/countries.geo.json")
 	if err != nil {
 		return nil, err
 	}
