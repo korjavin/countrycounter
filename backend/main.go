@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -27,25 +26,30 @@ func loadData() {
 	mutex.Lock()
 	defer mutex.Unlock()
 
+	UserData = make(map[int64][]string) // Initialize with an empty map
+
 	bytes, err := os.ReadFile("backend/data.json")
 	if err != nil {
 		if os.IsNotExist(err) {
-			log.Println("data.json not found, initializing empty map.")
-			UserData = make(map[int64][]string)
-			return
+			log.Println("data.json not found, creating a new one.")
+		} else {
+			log.Printf("WARN: could not read data.json, starting with an empty dataset: %v", err)
 		}
-		log.Fatalf("could not read data.json: %v", err)
+		return // Return with empty UserData
 	}
 
 	if err := json.Unmarshal(bytes, &UserData); err != nil {
-		log.Fatalf("could not parse data.json: %v", err)
+		log.Printf("WARN: could not parse data.json, starting with an empty dataset: %v", err)
+		// Keep the map empty
+		UserData = make(map[int64][]string)
+	} else {
+		log.Println("Data loaded successfully.")
 	}
-	log.Println("Data loaded successfully.")
 }
 
 func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 	// Load and parse the GeoJSON file
-	raw, err := ioutil.ReadFile("data/countries.geo.json")
+	raw, err := ioutil.ReadFile("frontend/countries.geo.json")
 	if err != nil {
 		return nil, err
 	}
@@ -156,17 +160,17 @@ func drawPolygon(dc *gg.Context, polygon [][]float64, minX, maxY, scaleX, scaleY
 }
 
 // saveData writes the current UserData map to data.json.
+// The caller MUST hold the mutex.
 func saveData() {
-	mutex.Lock()
-	defer mutex.Unlock()
-
 	bytes, err := json.MarshalIndent(UserData, "", "  ")
 	if err != nil {
-		log.Fatalf("could not marshal data: %v", err)
+		log.Printf("ERROR: could not marshal data: %v", err)
+		return
 	}
 
 	if err := os.WriteFile("backend/data.json", bytes, 0644); err != nil {
-		log.Fatalf("could not write to data.json: %v", err)
+		log.Printf("ERROR: could not write to data.json: %v", err)
+		return
 	}
 	log.Println("Data saved successfully.")
 }
@@ -183,8 +187,8 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// API to get and update countries
-	mux.HandleFunc("/api/countries", handleCountries)
+	// API to get and update countries, protected by auth middleware
+	mux.Handle("/api/countries", authMiddleware(http.HandlerFunc(handleCountries)))
 
 	// Serve frontend files
 	fs := http.FileServer(http.Dir("./frontend"))
@@ -215,16 +219,12 @@ func handleCountries(w http.ResponseWriter, r *http.Request) {
 }
 
 func getCountries(w http.ResponseWriter, r *http.Request) {
-	userIDStr := r.URL.Query().Get("userId")
-	if userIDStr == "" {
-		http.Error(w, "userId query parameter is required", http.StatusBadRequest)
+	user, ok := r.Context().Value(userContextKey).(*TelegramUser)
+	if !ok {
+		http.Error(w, "Could not retrieve user from context", http.StatusInternalServerError)
 		return
 	}
-	userID, err := strconv.ParseInt(userIDStr, 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid userId", http.StatusBadRequest)
-		return
-	}
+	userID := user.ID
 
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -240,8 +240,14 @@ func getCountries(w http.ResponseWriter, r *http.Request) {
 }
 
 func addCountry(w http.ResponseWriter, r *http.Request) {
+	user, ok := r.Context().Value(userContextKey).(*TelegramUser)
+	if !ok {
+		http.Error(w, "Could not retrieve user from context", http.StatusInternalServerError)
+		return
+	}
+	userID := user.ID
+
 	var req struct {
-		UserID  int64  `json:"userId"`
 		Country string `json:"country"`
 	}
 
@@ -250,17 +256,31 @@ func addCountry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.UserID == 0 || req.Country == "" {
-		http.Error(w, "userId and country are required", http.StatusBadRequest)
+	if req.Country == "" {
+		http.Error(w, "country is required", http.StatusBadRequest)
 		return
 	}
 
 	mutex.Lock()
-	UserData[req.UserID] = append(UserData[req.UserID], req.Country)
-	mutex.Unlock()
+	defer mutex.Unlock()
 
-	log.Printf("Saving country %s for user %d", req.Country, req.UserID)
-	saveData()
+	// Check if the user exists, if not, create an empty slice
+	if _, ok := UserData[userID]; !ok {
+		UserData[userID] = []string{}
+	}
+
+	// Check for duplicates
+	for _, country := range UserData[userID] {
+		if country == req.Country {
+			w.WriteHeader(http.StatusOK) // Already exists
+			return
+		}
+	}
+
+	// Add the country and save
+	UserData[userID] = append(UserData[userID], req.Country)
+	log.Printf("Saving country %s for user %d", req.Country, userID)
+	saveData() // This now correctly runs within the mutex lock
 
 	w.WriteHeader(http.StatusCreated)
 }

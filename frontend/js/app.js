@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function getVisitedCountries() {
-        if (!userId) {
+        if (!tg.initData) {
             visitedCountries = [];
             updateStatus("Running in standalone mode.", true);
             updateMap();
@@ -63,16 +63,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         try {
             updateStatus("Loading visited countries...");
-            const response = await fetch(`/api/countries?userId=${userId}`);
+            const response = await fetch(`/api/countries`, {
+                headers: {
+                    'X-Telegram-Init-Data': tg.initData
+                }
+            });
             if (!response.ok) {
-                if (response.status === 404) { // Handles new user case
+                if (response.status === 404 || response.status === 200 && response.headers.get("Content-Length") === "0") {
                     visitedCountries = [];
-                    updateStatus("New user, ready to add countries.");
                 } else {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
             } else {
-                visitedCountries = await response.json();
+                const data = await response.json();
+                visitedCountries = data || [];
                 updateStatus("Visited countries loaded.");
             }
             updateMap();
@@ -83,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function addCountry(country) {
-        if (!userId) {
+        if (!tg.initData) {
             // Standalone mode: just update the local list and map
             if (!visitedCountries.includes(country)) {
                 visitedCountries.push(country);
@@ -98,11 +102,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-Telegram-Init-Data': tg.initData
                 },
-                body: JSON.stringify({ userId: userId, country: country }),
+                body: JSON.stringify({ country: country }),
             });
 
-            if (response.status === 201) {
+            if (response.ok) {
                 updateStatus(`${country} added successfully!`);
                 await getVisitedCountries(); // Refresh the list from the backend
             } else {
@@ -133,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadMapData() {
         try {
-            const response = await fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json');
+            const response = await fetch('countries.geo.json');
             const geojsonData = await response.json();
             geojsonLayer = L.geoJSON(geojsonData, {
                 style: countryStyle,
