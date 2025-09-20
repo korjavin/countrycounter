@@ -284,10 +284,9 @@ func deleteCountry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mutex.Lock()
-	defer mutex.Unlock()
-
 	countries, ok := UserData[req.UserID]
 	if !ok {
+		mutex.Unlock()
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
@@ -300,6 +299,8 @@ func deleteCountry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	UserData[req.UserID] = newCountries
+	mutex.Unlock()
+
 	log.Printf("Deleting country %s for user %d", req.Country, req.UserID)
 	saveData()
 
