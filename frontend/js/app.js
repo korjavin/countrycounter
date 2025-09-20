@@ -114,6 +114,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function deleteCountry(country) {
+        if (!userId) {
+            // Standalone mode: just update the local list and map
+            const index = visitedCountries.indexOf(country);
+            if (index > -1) {
+                visitedCountries.splice(index, 1);
+                updateMap();
+                updateStatus(`${country} deleted locally.`);
+            }
+            return;
+        }
+        try {
+            updateStatus(`Deleting ${country}...`);
+            const response = await fetch('/api/countries', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ userId: userId, country: country }),
+            });
+
+            if (response.status === 200) {
+                updateStatus(`${country} deleted successfully!`);
+                await getVisitedCountries(); // Refresh the list from the backend
+            } else {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Error deleting country:', error);
+            updateStatus(`Error deleting ${country}: ${error.message}`, true);
+        }
+    }
+
     async function loadAllCountries() {
         try {
             const response = await fetch('all_countries.json');
@@ -163,7 +196,17 @@ document.addEventListener('DOMContentLoaded', () => {
         countriesUl.innerHTML = '';
         visitedCountries.sort().forEach(country => {
             const li = document.createElement('li');
-            li.textContent = country;
+
+            const countryName = document.createElement('span');
+            countryName.textContent = country;
+            li.appendChild(countryName);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.classList.add('delete-btn');
+            deleteBtn.onclick = () => deleteCountry(country);
+            li.appendChild(deleteBtn);
+
             countriesUl.appendChild(li);
         });
     }

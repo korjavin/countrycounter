@@ -63,3 +63,19 @@ button {
     padding: 5px 10px;
     cursor: pointer;
 }
+
+#countries-ul li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+}
+
+.delete-btn {
+    background-color: #d9534f;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 12px;
+}

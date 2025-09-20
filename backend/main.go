@@ -209,6 +209,8 @@ func handleCountries(w http.ResponseWriter, r *http.Request) {
 		getCountries(w, r)
 	case http.MethodPost:
 		addCountry(w, r)
+	case http.MethodDelete:
+		deleteCountry(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -263,6 +265,45 @@ func addCountry(w http.ResponseWriter, r *http.Request) {
 	saveData()
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+func deleteCountry(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		UserID  int64  `json:"userId"`
+		Country string `json:"country"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.UserID == 0 || req.Country == "" {
+		http.Error(w, "userId and country are required", http.StatusBadRequest)
+		return
+	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	countries, ok := UserData[req.UserID]
+	if !ok {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	newCountries := []string{}
+	for _, country := range countries {
+		if country != req.Country {
+			newCountries = append(newCountries, country)
+		}
+	}
+
+	UserData[req.UserID] = newCountries
+	log.Printf("Deleting country %s for user %d", req.Country, req.UserID)
+	saveData()
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func startTelegramBot() {

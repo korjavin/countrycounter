@@ -1,2 +1,5 @@
 node_modules
 server.log
+playwright-report/
+test-results/
+backend/backend
