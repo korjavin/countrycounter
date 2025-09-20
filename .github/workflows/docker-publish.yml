@@ -24,7 +24,6 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and push Docker image
-      id: build-and-push
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -44,10 +43,3 @@ jobs:
         git add docker-compose.yml
         git commit -m "ci: Update image tag to ${{ github.sha }}"
         git push origin deploy --force
-
-    - name: Trigger Portainer Redeploy Webhook
-      if: secrets.PORTAINER_REDEPLOY_HOOK != ''
-      uses: distributhor/workflow-webhook@v3
-      with:
-        webhook_url: ${{ secrets.PORTAINER_REDEPLOY_HOOK }}
-        webhook_secret: "trigger"

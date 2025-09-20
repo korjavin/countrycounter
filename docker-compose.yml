@@ -10,7 +10,7 @@ services:
       - ${NETWORK_NAME:-vaultwarden_default}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.countrycounter.rule=Host(`${DOMAIN:-cc.kfamcloud.com}`)"
+      - "traefik.http.routers.countrycounter.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.countrycounter.entrypoints=websecure"
       - "traefik.http.routers.countrycounter.tls.certresolver=myresolver"
       - "io.containers.autoupdate=image"

@@ -17,7 +17,7 @@ services:
       - vaultwarden_default
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.countrycounter.rule=Host(`cc.kfamcloud.com`)"
+      - "traefik.http.routers.countrycounter.rule=Host(`your-domain.com`)"
       - "traefik.http.routers.countrycounter.entrypoints=websecure"
       - "traefik.http.routers.countrycounter.tls.certresolver=myresolver"
       - "io.containers.autoupdate=image"
@@ -43,7 +43,7 @@ volumes:
 To make the configuration more flexible, you can use environment variables:
 
 1. Set these variables in Portainer's environment section:
-   - `DOMAIN=cc.kfamcloud.com`
+   - `DOMAIN=your-domain.com`
    - `NETWORK_NAME=vaultwarden_default`
    - `TELEGRAM_BOT_TOKEN=your_token_here`
 
@@ -62,7 +62,7 @@ services:
       - ${NETWORK_NAME:-vaultwarden_default}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.countrycounter.rule=Host(`${DOMAIN:-cc.kfamcloud.com}`)"
+      - "traefik.http.routers.countrycounter.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.countrycounter.entrypoints=websecure"
       - "traefik.http.routers.countrycounter.tls.certresolver=myresolver"
       - "io.containers.autoupdate=image"
