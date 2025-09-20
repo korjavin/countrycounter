@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  tgwebapp:
+    image: ghcr.io/korjavin/countrycounter:latest
+    container_name: countrycounter
+    volumes:
+      - cc-data:/app/backend
+    networks:
+      - ${NETWORK_NAME:-vaultwarden_default}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.countrycounter.rule=Host(`${DOMAIN:-cc.kfamcloud.com}`)"
+      - "traefik.http.routers.countrycounter.entrypoints=websecure"
+      - "traefik.http.routers.countrycounter.tls.certresolver=myresolver"
+      - "io.containers.autoupdate=image"
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+
+networks:
+  vaultwarden_default:
+    external: true
+
+volumes:
+  cc-data:
