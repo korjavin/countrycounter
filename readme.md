@@ -63,15 +63,23 @@ To run this project, you will need Docker installed on your machine.
 3.  **Build and run the Docker container:**
     ```sh
     docker build -t ghcr.io/korjavin/countrycounter:latest .
-    docker run -p 8080:8080 -e TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN" ghcr.io/korjavin/countrycounter:latest
+    docker run -d -p 8080:8080 --name countrycounter \
+      -e TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN" \
+      -v countrycounter-data:/app/backend \
+      ghcr.io/korjavin/countrycounter:latest
     ```
+    This command runs the container in detached mode, maps port 8080, sets your bot token, and mounts a volume to persist user data.
 
 4.  **Access the application:**
     -   The application will be running and accessible through your Telegram bot's Mini App interface.
 
+### API Security
+
+The API endpoints are secured by validating the `initData` provided by the Telegram Web App on every request. The backend verifies the hash using your bot token to ensure that requests are authentic and originate from your Telegram app, preventing unauthorized access to user data.
+
 ## Data Persistence
 
-The application stores user data in a JSON file located at `/app/backend/data.json` inside the container. To ensure that this data is not lost when the container is stopped or removed, you should mount a Docker volume to this path.
+The application stores user data in a JSON file located at `/app/backend/data.json` inside the container. To ensure that this data is not lost when the container is stopped or removed, you should mount a Docker volume to this path, as shown in the `docker run` command above.
 
 You can use a `docker-compose.yml` file to manage the container and its volume easily.
 
