@@ -184,9 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadMapData() {
     try {
-      const response = await fetch(
-        "https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json",
-      );
+      const response = await fetch("/data/countries.geo.json");
       const geojsonData = await response.json();
       geojsonLayer = L.geoJSON(geojsonData, {
         style: countryStyle,
