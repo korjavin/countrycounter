@@ -389,6 +389,23 @@ func startTelegramBot() {
 			if _, err := bot.Send(msg); err != nil {
 				log.Printf("Error sending message: %v", err)
 			}
+		case "suggest":
+			userID := update.Message.From.ID
+			mutex.Lock()
+			countries, ok := UserData[userID]
+			mutex.Unlock()
+
+			var visitedCountries []string
+			if ok {
+				visitedCountries = countries
+			}
+
+			suggestions := GetCountrySuggestions(visitedCountries, 8)
+			msg.Text = FormatSuggestions(suggestions)
+
+			if _, err := bot.Send(msg); err != nil {
+				log.Printf("Error sending message: %v", err)
+			}
 		default:
 			msg.Text = "I don't know that command."
 			if _, err := bot.Send(msg); err != nil {
