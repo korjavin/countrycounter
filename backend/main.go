@@ -68,6 +68,7 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 	visitedSet := make(map[string]bool)
 	for _, country := range visitedCountries {
 		visitedSet[country] = true
+		log.Printf("DEBUG: Visited country stored: '%s' (len=%d)", country, len(country))
 	}
 
 	// Find the bounding box of the world to scale the map
@@ -107,6 +108,9 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 			continue
 		}
 		isVisited := visitedSet[countryName]
+		if countryName == "Czechia" || strings.Contains(countryName, "Czech") {
+			log.Printf("DEBUG: Processing country '%s' (len=%d), isVisited=%v", countryName, len(countryName), isVisited)
+		}
 
 		if isVisited {
 			dc.SetColor(color.RGBA{R: 212, G: 172, B: 13, A: 255}) // Gold for visited
