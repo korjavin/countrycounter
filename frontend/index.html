@@ -1,36 +1,89 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Country Counter</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Country Counter</title>
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+            integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+            crossorigin=""
+        />
+        <link rel="stylesheet" href="css/style.css" />
+    </head>
+    <body>
+        <div id="map"></div>
 
-    <div id="map"></div>
+        <div class="stats-container">
+            <h2>Visited Countries: <span id="visited-count">0</span></h2>
+            <button id="toggle-list-btn">Show List</button>
+        </div>
 
-    <div class="stats-container">
-        <h2>Visited Countries: <span id="visited-count">0</span></h2>
-        <button id="toggle-list-btn">Show List</button>
-    </div>
+        <div id="visited-list" class="hidden">
+            <h3>Visited Countries:</h3>
+            <ul id="countries-ul"></ul>
+        </div>
 
-    <div id="visited-list" class="hidden">
-        <h3>Visited Countries:</h3>
-        <ul id="countries-ul">
-        </ul>
-    </div>
+        <div class="add-country-container">
+            <input
+                type="text"
+                id="country-input"
+                list="country-list"
+                placeholder="Select a country"
+            />
+            <datalist id="country-list"></datalist>
+            <button id="add-country-btn">Add Country</button>
+        </div>
 
-    <div class="add-country-container">
-        <input type="text" id="country-input" list="country-list" placeholder="Select a country">
-        <datalist id="country-list"></datalist>
-        <button id="add-country-btn">Add Country</button>
-    </div>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="js/app.js"></script>
-    <div id="status-bar"></div>
-</body>
+        <script
+            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""
+        ></script>
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        <script src="js/app.js"></script>
+        <div id="status-bar"></div>
+        <div
+            id="debug-panel"
+            style="
+                position: fixed;
+                bottom: 50px;
+                left: 10px;
+                right: 10px;
+                background: rgba(0, 0, 0, 0.9);
+                color: #0f0;
+                padding: 10px;
+                font-family: monospace;
+                font-size: 10px;
+                max-height: 200px;
+                overflow-y: auto;
+                z-index: 10000;
+                display: none;
+            "
+        >
+            <div
+                style="
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 5px;
+                "
+            >
+                <strong>DEBUG LOG</strong>
+                <button
+                    onclick="document.getElementById('debug-panel').style.display='none'"
+                    style="
+                        background: #f00;
+                        color: #fff;
+                        border: none;
+                        padding: 2px 8px;
+                        cursor: pointer;
+                    "
+                >
+                    Close
+                </button>
+            </div>
+            <div id="debug-content"></div>
+        </div>
+    </body>
 </html>
