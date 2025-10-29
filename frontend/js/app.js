@@ -13,25 +13,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   console.log("User ID:", userId);
 
-  // Debug panel helper
-  function debugLog(message) {
-    const debugPanel = document.getElementById("debug-panel");
-    const debugContent = document.getElementById("debug-content");
-    if (debugPanel && debugContent) {
-      debugPanel.style.display = "block";
-      const line = document.createElement("div");
-      line.textContent = message;
-      line.style.borderBottom = "1px solid #333";
-      line.style.paddingBottom = "2px";
-      line.style.marginBottom = "2px";
-      debugContent.appendChild(line);
-      while (debugContent.children.length > 20) {
-        debugContent.removeChild(debugContent.firstChild);
-      }
-    }
-    console.log(message);
-  }
-
   const map = L.map("map", {
     center: [20, 0],
     zoom: 2,
@@ -198,19 +179,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function countryStyle(feature) {
     const countryName = feature.properties.name;
     const isVisited = visitedCountries.includes(countryName);
-
-    // Debug logging for Czech countries
-    if (
-      countryName &&
-      (countryName.includes("Czech") || countryName === "Czechia")
-    ) {
-      debugLog(
-        `Country: '${countryName}' len=${countryName.length} isVisited=${isVisited}`,
-      );
-      debugLog(`visitedCountries has ${visitedCountries.length} items`);
-      const czechInList = visitedCountries.filter((c) => c.includes("Czech"));
-      debugLog(`Czech in list: ${JSON.stringify(czechInList)}`);
-    }
 
     return {
       fillColor: isVisited ? "#d4ac0d" : "#f0f0f0",
