@@ -3,3 +3,5 @@ server.log
 playwright-report/
 test-results/
 backend/backend
+backend/backend
+.DS_Store
