@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/filipkroca/revgeo"
 	"github.com/fogleman/gg"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	geojson "github.com/paulmach/go.geojson"
@@ -312,6 +313,26 @@ func deleteCountry(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// getCountryFromLocation converts latitude/longitude to a country name
+// Returns the country name if found, or an error if the location cannot be geocoded
+func getCountryFromLocation(latitude, longitude float64) (string, error) {
+	decoder := revgeo.Decoder{}
+
+	// revgeo.Geocode expects (lng, lat) in GeoJSON order
+	isoCode, err := decoder.Geocode(longitude, latitude)
+	if err != nil {
+		return "", fmt.Errorf("failed to geocode location: %w", err)
+	}
+
+	// Convert ISO code to full country name
+	countryName, ok := ISOToCountryName[isoCode]
+	if !ok {
+		return "", fmt.Errorf("unknown country code: %s", isoCode)
+	}
+
+	return countryName, nil
+}
+
 func startTelegramBot() {
 	token := os.Getenv("TELEGRAM_BOT_TOKEN")
 	if token == "" {
@@ -338,11 +359,67 @@ func startTelegramBot() {
 			continue
 		}
 
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+
+		// Handle location messages
+		if update.Message.Location != nil {
+			userID := update.Message.From.ID
+			lat := update.Message.Location.Latitude
+			lng := update.Message.Location.Longitude
+
+			log.Printf("Received location from user %d: lat=%f, lng=%f", userID, lat, lng)
+
+			country, err := getCountryFromLocation(lat, lng)
+			if err != nil {
+				log.Printf("Error geocoding location: %v", err)
+				msg.Text = "Sorry, I couldn't determine the country from that location. Please make sure you're sharing a location within a country's borders."
+				if _, err := bot.Send(msg); err != nil {
+					log.Printf("Error sending message: %v", err)
+				}
+				continue
+			}
+
+			// Check if country is already in user's list
+			mutex.Lock()
+			countries, ok := UserData[userID]
+			alreadyVisited := false
+			if ok {
+				for _, c := range countries {
+					if c == country {
+						alreadyVisited = true
+						break
+					}
+				}
+			}
+
+			if alreadyVisited {
+				mutex.Unlock()
+				msg.Text = fmt.Sprintf("You've already added %s to your list! 🗺️", country)
+				if _, err := bot.Send(msg); err != nil {
+					log.Printf("Error sending message: %v", err)
+				}
+				continue
+			}
+
+			// Add country to user's list
+			UserData[userID] = append(UserData[userID], country)
+			mutex.Unlock()
+
+			log.Printf("Adding country %s for user %d", country, userID)
+			saveData()
+
+			msg.Text = fmt.Sprintf("Added %s to your visited countries! 🎉\nYou've now visited %d countries. Use /map to see your progress!", country, len(UserData[userID]))
+			if _, err := bot.Send(msg); err != nil {
+				log.Printf("Error sending message: %v", err)
+			}
+			continue
+		}
+
+		// Handle command messages
 		if !update.Message.IsCommand() {
 			continue
 		}
 
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 		switch update.Message.Command() {
 		case "map":
 			userID := update.Message.From.ID
