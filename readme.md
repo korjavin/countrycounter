@@ -15,20 +15,57 @@ The application is built with a lightweight Go backend and a pure JavaScript fro
 -   **Travel Statistics**: Displays a running count of visited countries.
 -   **Visited Countries List**: A collapsible list to review your visited countries.
 -   **Add Countries Mode**: An intuitive interface to search and add new countries to your list.
--   **Telegram Bot Commands**: Use `/map` to get a PNG image of your map and `/list` to get a text list of your visited countries, right in your chat.
+-   **Location-Based Country Detection**: Simply send your location in Telegram, and the bot automatically detects and adds the country to your visited list! Perfect for adding countries as you travel in real-time.
+-   **Telegram Bot Commands**: 
+    -   `/map` - Get a PNG image of your map right in your chat
+    -   `/list` - Get a text list of your visited countries
+    -   `/suggest` - Get personalized country recommendations based on your travel history
+    -   **Send Location** - Share any location to automatically detect and add the country
 -   **Mobile-First Design**: A clean and responsive UI optimized for mobile devices.
 -   **Simple & Efficient Backend**: A lightweight Go server handles data persistence.
 -   **Containerized**: Packaged as a single Docker container for easy deployment and scaling.
 -   **Automated CI/CD**: GitHub Actions automatically build and publish the Docker image to GitHub Container Registry.
+
+## How to Use
+
+### Adding Countries via the Web App
+
+1. Open the Telegram Mini App from your bot
+2. Click the "+" button to enter add mode
+3. Search for countries and click to add them to your list
+4. Your map will update automatically to show visited countries in gold
+
+### Adding Countries via Location (NEW!)
+
+The easiest way to track your travels is to send your location directly in Telegram:
+
+1. Open your chat with the bot
+2. Click the attachment icon (📎) and select "Location"
+3. Choose "Send My Current Location" or select any location on the map
+4. The bot will automatically:
+   - Detect which country the location is in
+   - Check if it's already in your list
+   - Add it if it's new (or let you know if you've already added it)
+   - Show you how many countries you've visited so far
+
+**Pro tip**: You can send locations from photos, saved places, or manually select any point on the map. This makes it easy to add countries from past trips by sharing locations from your photo gallery!
+
+### Using Bot Commands
+
+- `/map` - Generate and receive a beautiful PNG map of all countries you've visited
+- `/list` - Get a formatted text list of all your visited countries
+- `/suggest` - Get personalized recommendations for your next destination based on your travel history
 
 ## Data Collection and Privacy
 
 We respect your privacy. Here's a transparent look at the data we collect and how we use it:
 
 -   **What we store**: We only store your Telegram User ID and the list of countries you have visited. We do not store your name, username, or any other personal information.
+-   **Location data**: When you send a location, we use the coordinates only to determine the country name. **We do not store your GPS coordinates, specific locations, addresses, or any location history.** Only the country name is saved.
 -   **How we use it**: Your User ID is used as a key to retrieve your list of visited countries. The list of countries is used to generate your personalized map and statistics.
 -   **Data Storage**: All data is stored in a `data.json` file on the server where the application is hosted. You have full control over this data.
 -   **No Third-Party Tracking**: The application does not use any third-party analytics or tracking services.
+-   **Offline Processing**: Location-to-country conversion happens entirely on your server without sending data to external geocoding services.
 
 ## Tech Stack
 
@@ -39,11 +76,31 @@ We respect your privacy. Here's a transparent look at the data we collect and ho
 -   **Backend**:
     -   **Go (Golang)**: For building a simple, efficient, and reliable web server.
     -   **Standard `net/http` package**: For routing and serving files.
+    -   **[revgeo](https://github.com/filipkroca/revgeo)**: Fast offline reverse geocoding library for converting GPS coordinates to country codes.
+    -   **[Telegram Bot API](https://github.com/go-telegram-bot-api/telegram-bot-api)**: Official Go wrapper for the Telegram Bot API.
     -   **JSON**: For simple, file-based data storage.
 -   **Deployment**:
     -   **Docker**: To containerize the application.
     -   **GitHub Actions**: For continuous integration and deployment.
     -   **GitHub Container Registry (ghcr.io)**: For hosting the Docker image.
+
+## How Location Detection Works
+
+The location-based country detection feature uses offline reverse geocoding, which means:
+
+-   **No external API calls**: The bot determines countries entirely on your server using embedded GeoJSON data
+-   **Fast response**: Country detection happens in milliseconds
+-   **Privacy-friendly**: Your location coordinates are never sent to third parties
+-   **Reliable**: Works even without internet connectivity (after initial setup)
+
+**Technical Details:**
+1. When you send a location, Telegram provides latitude and longitude coordinates
+2. The `revgeo` library uses pre-loaded GeoJSON polygon data to determine which country contains those coordinates
+3. The library returns an ISO 3166-1 alpha-3 country code (e.g., "USA", "FRA", "JPN")
+4. The bot maps this code to the full country name used in your map data
+5. The country is added to your list if it's not already there
+
+This approach is more privacy-conscious and faster than using external geocoding APIs like Google Maps or OpenStreetMap.
 
 ## Getting Started
 
