@@ -81,7 +81,14 @@ func TestGenerateMapImageWriteToFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
-	defer f.Close()
+	t.Cleanup(func() {
+		if err := f.Close(); err != nil {
+			t.Logf("failed to close temp file: %v", err)
+		}
+		if err := os.Remove(f.Name()); err != nil {
+			t.Logf("failed to remove temp file: %v", err)
+		}
+	})
 	if _, err := f.Write(buf.Bytes()); err != nil {
 		t.Fatalf("failed to write PNG: %v", err)
 	}

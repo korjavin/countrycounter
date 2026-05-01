@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/color"
-	"io/ioutil"
 	"log"
 	"math"
 	"net/http"
@@ -26,7 +25,7 @@ var mutex = &sync.Mutex{}
 
 // geoJSONPath is the path to the countries GeoJSON file, relative to the working directory.
 // Override in tests since test working directory is the package directory (backend/).
-var geoJSONPath = "backend/countries.geo.json"
+var geoJSONPath = "data/countries.geo.json"
 
 // loadData reads the data from data.json into the UserData map.
 func loadData() {
@@ -63,7 +62,7 @@ func mercatorY(lat float64) float64 {
 
 func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 	// Load and parse the GeoJSON file
-	raw, err := ioutil.ReadFile(geoJSONPath)
+	raw, err := os.ReadFile(geoJSONPath)
 	if err != nil {
 		return nil, err
 	}
@@ -138,6 +137,9 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 		}
 		countryName, ok := feature.Properties["name"].(string)
 		if !ok {
+			continue
+		}
+		if feature.Geometry == nil {
 			continue
 		}
 		isVisited := visitedSet[countryName]
