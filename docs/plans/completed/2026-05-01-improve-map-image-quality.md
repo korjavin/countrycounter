@@ -62,6 +62,6 @@ Upgrade the map rendering in generateMapImage to produce a more polished, visual
 
 ### Task 5: Update documentation
 
-- [ ] Update README.md if user-facing changes
-- [ ] Update CLAUDE.md if internal patterns changed
-- [ ] Move this plan to `docs/plans/completed/`
+- [x] Update README.md if user-facing changes
+- [x] Update CLAUDE.md if internal patterns changed
+- [x] Move this plan to `docs/plans/completed/`
