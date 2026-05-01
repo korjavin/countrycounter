@@ -132,7 +132,10 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 			}
 		}
 
-		dc.Fill()
+		dc.FillPreserve()
+		dc.SetColor(color.RGBA{R: 100, G: 100, B: 100, A: 180})
+		dc.SetLineWidth(0.5)
+		dc.Stroke()
 	}
 
 	// Encode the image to a buffer

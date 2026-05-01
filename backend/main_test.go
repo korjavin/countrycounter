@@ -33,6 +33,17 @@ func TestGenerateMapImageVisited(t *testing.T) {
 	assertValidPNG(t, buf, 1024, 512)
 }
 
+func TestGenerateMapImageBorders(t *testing.T) {
+	buf, err := generateMapImage([]string{"Brazil"})
+	if err != nil {
+		t.Fatalf("generateMapImage failed: %v", err)
+	}
+	if buf == nil || buf.Len() == 0 {
+		t.Fatal("expected non-empty PNG bytes")
+	}
+	assertValidPNG(t, buf, 1024, 512)
+}
+
 func assertValidPNG(t *testing.T, buf *bytes.Buffer, wantW, wantH int) {
 	t.Helper()
 	img, format, err := image.Decode(bytes.NewReader(buf.Bytes()))

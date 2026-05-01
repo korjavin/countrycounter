@@ -35,12 +35,12 @@ Upgrade the map rendering in generateMapImage to produce a more polished, visual
 **Files:**
 - Modify: `backend/main.go`
 
-- [ ] In the polygon drawing loop, switch from dc.Fill() to dc.FillPreserve() so the path is retained after fill
-- [ ] After FillPreserve, set a border color (e.g. RGBA 100,100,100 with alpha 180) and line width (e.g. 0.5px)
-- [ ] Call dc.Stroke() to draw the border outline
-- [ ] Ensure this works for both Polygon and MultiPolygon geometry types
-- [ ] Write a test that generates a map image and checks the output is valid PNG with non-zero size
-- [ ] Run project test suite — must pass before task 3
+- [x] In the polygon drawing loop, switch from dc.Fill() to dc.FillPreserve() so the path is retained after fill
+- [x] After FillPreserve, set a border color (e.g. RGBA 100,100,100 with alpha 180) and line width (e.g. 0.5px)
+- [x] Call dc.Stroke() to draw the border outline
+- [x] Ensure this works for both Polygon and MultiPolygon geometry types
+- [x] Write a test that generates a map image and checks the output is valid PNG with non-zero size
+- [x] Run project test suite — must pass before task 3
 
 ### Task 3: Implement Mercator projection
 
