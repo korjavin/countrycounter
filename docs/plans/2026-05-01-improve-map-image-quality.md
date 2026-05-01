@@ -24,11 +24,11 @@ Upgrade the map rendering in generateMapImage to produce a more polished, visual
 **Files:**
 - Modify: `backend/main.go`
 
-- [ ] Change the background clear color from light gray (0.9, 0.9, 0.9) to an ocean blue (e.g. RGB 0.65, 0.81, 0.89)
-- [ ] Update visited country color from gold RGBA(212,172,13) to a richer tone (e.g. RGBA 46,204,113 green or RGBA 231,76,60 warm red — pick a palette that contrasts well with ocean blue)
-- [ ] Update unvisited country color from RGBA(200,200,200) to a lighter neutral that sits well on the blue ocean (e.g. RGBA 230,230,220 warm white)
-- [ ] Write a test that calls generateMapImage with an empty list and a non-empty list, verifying it returns valid PNG bytes and expected dimensions
-- [ ] Run project test suite — must pass before task 2
+- [x] Change the background clear color from light gray (0.9, 0.9, 0.9) to an ocean blue (e.g. RGB 0.65, 0.81, 0.89)
+- [x] Update visited country color from gold RGBA(212,172,13) to a richer tone (e.g. RGBA 46,204,113 green or RGBA 231,76,60 warm red — pick a palette that contrasts well with ocean blue)
+- [x] Update unvisited country color from RGBA(200,200,200) to a lighter neutral that sits well on the blue ocean (e.g. RGBA 230,230,220 warm white)
+- [x] Write a test that calls generateMapImage with an empty list and a non-empty list, verifying it returns valid PNG bytes and expected dimensions
+- [x] Run project test suite — must pass before task 2
 
 ### Task 2: Add country border outlines
 

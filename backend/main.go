@@ -23,6 +23,10 @@ import (
 var UserData map[int64][]string
 var mutex = &sync.Mutex{}
 
+// geoJSONPath is the path to the countries GeoJSON file, relative to the working directory.
+// Override in tests since test working directory is the package directory (backend/).
+var geoJSONPath = "backend/countries.geo.json"
+
 // loadData reads the data from data.json into the UserData map.
 func loadData() {
 	mutex.Lock()
@@ -46,7 +50,7 @@ func loadData() {
 
 func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 	// Load and parse the GeoJSON file
-	raw, err := ioutil.ReadFile("data/countries.geo.json")
+	raw, err := ioutil.ReadFile(geoJSONPath)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +66,7 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 		height = 512
 	)
 	dc := gg.NewContext(width, height)
-	dc.SetRGB(0.9, 0.9, 0.9) // Set background color
+	dc.SetRGB(0.65, 0.81, 0.89) // Ocean blue background
 	dc.Clear()
 
 	// Create a map for quick lookup of visited countries
@@ -110,9 +114,9 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 		isVisited := visitedSet[countryName]
 
 		if isVisited {
-			dc.SetColor(color.RGBA{R: 212, G: 172, B: 13, A: 255}) // Gold for visited
+			dc.SetColor(color.RGBA{R: 231, G: 76, B: 60, A: 255}) // Warm red for visited
 		} else {
-			dc.SetColor(color.RGBA{R: 200, G: 200, B: 200, A: 255}) // Gray for not visited
+			dc.SetColor(color.RGBA{R: 230, G: 230, B: 220, A: 255}) // Warm white for unvisited
 		}
 
 		// Handle both Polygon and MultiPolygon geometries
