@@ -47,12 +47,12 @@ Upgrade the map rendering in generateMapImage to produce a more polished, visual
 **Files:**
 - Modify: `backend/main.go`
 
-- [ ] Replace the linear Y-axis mapping in drawPolygon with the Mercator formula: y = ln(tan(pi/4 + lat_rad/2)), where lat_rad = latitude * pi / 180
-- [ ] Clamp latitude input to [-85, 85] degrees to avoid infinity near the poles
-- [ ] Update the bounding box calculation to also use the Mercator Y transform so scale factors are consistent
-- [ ] Fix the bounding box loop to also iterate MultiPolygon coordinates (currently only handles Polygon, which misses countries like Russia and USA)
-- [ ] Write a test that verifies the Mercator transform produces expected Y values for known latitudes (e.g. equator=0, 45N, 60N)
-- [ ] Run project test suite — must pass before task 4
+- [x] Replace the linear Y-axis mapping in drawPolygon with the Mercator formula: y = ln(tan(pi/4 + lat_rad/2)), where lat_rad = latitude * pi / 180
+- [x] Clamp latitude input to [-85, 85] degrees to avoid infinity near the poles
+- [x] Update the bounding box calculation to also use the Mercator Y transform so scale factors are consistent
+- [x] Fix the bounding box loop to also iterate MultiPolygon coordinates (currently only handles Polygon, which misses countries like Russia and USA)
+- [x] Write a test that verifies the Mercator transform produces expected Y values for known latitudes (e.g. equator=0, 45N, 60N)
+- [x] Run project test suite — must pass before task 4
 
 ### Task 4: Verify acceptance criteria
 

@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -48,6 +49,18 @@ func loadData() {
 	log.Println("Data loaded successfully.")
 }
 
+// mercatorY converts a latitude in degrees to the Mercator Y coordinate.
+// Latitude is clamped to [-85, 85] to avoid infinity at the poles.
+func mercatorY(lat float64) float64 {
+	if lat > 85.0 {
+		lat = 85.0
+	} else if lat < -85.0 {
+		lat = -85.0
+	}
+	latRad := lat * math.Pi / 180.0
+	return math.Log(math.Tan(math.Pi/4 + latRad/2))
+}
+
 func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 	// Load and parse the GeoJSON file
 	raw, err := ioutil.ReadFile(geoJSONPath)
@@ -75,32 +88,48 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 		visitedSet[country] = true
 	}
 
-	// Find the bounding box of the world to scale the map
-	minX, minY, maxX, maxY := 180.0, 90.0, -180.0, -90.0
+	// Find the bounding box of the world to scale the map using Mercator Y
+	minX, maxX := 180.0, -180.0
+	minMercY, maxMercY := math.MaxFloat64, -math.MaxFloat64
+
+	updateBounds := func(points [][]float64) {
+		for _, point := range points {
+			lon, lat := point[0], point[1]
+			if lon < minX {
+				minX = lon
+			}
+			if lon > maxX {
+				maxX = lon
+			}
+			my := mercatorY(lat)
+			if my < minMercY {
+				minMercY = my
+			}
+			if my > maxMercY {
+				maxMercY = my
+			}
+		}
+	}
+
 	for _, feature := range fc.Features {
 		if feature.Geometry == nil {
 			continue
 		}
-		for _, polygon := range feature.Geometry.Polygon {
-			for _, point := range polygon {
-				if point[0] < minX {
-					minX = point[0]
-				}
-				if point[0] > maxX {
-					maxX = point[0]
-				}
-				if point[1] < minY {
-					minY = point[1]
-				}
-				if point[1] > maxY {
-					maxY = point[1]
+		if feature.Geometry.IsPolygon() {
+			for _, ring := range feature.Geometry.Polygon {
+				updateBounds(ring)
+			}
+		} else if feature.Geometry.IsMultiPolygon() {
+			for _, polygon := range feature.Geometry.MultiPolygon {
+				for _, ring := range polygon {
+					updateBounds(ring)
 				}
 			}
 		}
 	}
 
 	scaleX := float64(width) / (maxX - minX)
-	scaleY := float64(height) / (maxY - minY)
+	scaleY := float64(height) / (maxMercY - minMercY)
 
 	// Draw each country
 	for _, feature := range fc.Features {
@@ -122,12 +151,12 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 		// Handle both Polygon and MultiPolygon geometries
 		if feature.Geometry.IsPolygon() {
 			for _, ring := range feature.Geometry.Polygon {
-				drawPolygon(dc, ring, minX, maxY, scaleX, scaleY)
+				drawPolygon(dc, ring, minX, maxMercY, scaleX, scaleY)
 			}
 		} else if feature.Geometry.IsMultiPolygon() {
 			for _, polygon := range feature.Geometry.MultiPolygon {
 				for _, ring := range polygon {
-					drawPolygon(dc, ring, minX, maxY, scaleX, scaleY)
+					drawPolygon(dc, ring, minX, maxMercY, scaleX, scaleY)
 				}
 			}
 		}
@@ -147,13 +176,13 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 	return buffer, nil
 }
 
-func drawPolygon(dc *gg.Context, polygon [][]float64, minX, maxY, scaleX, scaleY float64) {
+func drawPolygon(dc *gg.Context, polygon [][]float64, minX, maxMercY, scaleX, scaleY float64) {
 	if len(polygon) == 0 {
 		return
 	}
 	for i, point := range polygon {
 		x := (point[0] - minX) * scaleX
-		y := (maxY - point[1]) * scaleY
+		y := (maxMercY - mercatorY(point[1])) * scaleY
 		if i == 0 {
 			dc.MoveTo(x, y)
 		} else {

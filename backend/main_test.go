@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"image"
 	_ "image/png"
+	"math"
 	"testing"
 )
 
@@ -42,6 +43,32 @@ func TestGenerateMapImageBorders(t *testing.T) {
 		t.Fatal("expected non-empty PNG bytes")
 	}
 	assertValidPNG(t, buf, 1024, 512)
+}
+
+func TestMercatorY(t *testing.T) {
+	tests := []struct {
+		lat   float64
+		wantY float64
+		eps   float64
+	}{
+		{0, 0.0, 1e-10},
+		{45, 0.8813736, 1e-6},
+		{60, 1.3169579, 1e-6},
+		{-45, -0.8813736, 1e-6},
+	}
+	for _, tt := range tests {
+		got := mercatorY(tt.lat)
+		if math.Abs(got-tt.wantY) > tt.eps {
+			t.Errorf("mercatorY(%v) = %v, want %v", tt.lat, got, tt.wantY)
+		}
+	}
+	// Clamping: latitudes beyond ±85 should return the same value as ±85
+	if mercatorY(90) != mercatorY(85) {
+		t.Error("mercatorY(90) should equal mercatorY(85) due to clamping")
+	}
+	if mercatorY(-90) != mercatorY(-85) {
+		t.Error("mercatorY(-90) should equal mercatorY(-85) due to clamping")
+	}
 }
 
 func assertValidPNG(t *testing.T, buf *bytes.Buffer, wantW, wantH int) {
