@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/color"
-	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
@@ -22,6 +22,10 @@ import (
 // UserData holds the mapping from a Telegram user ID to a list of visited countries.
 var UserData map[int64][]string
 var mutex = &sync.Mutex{}
+
+// geoJSONPath is the path to the countries GeoJSON file, relative to the working directory.
+// Override in tests since test working directory is the package directory (backend/).
+var geoJSONPath = "data/countries.geo.json"
 
 // loadData reads the data from data.json into the UserData map.
 func loadData() {
@@ -44,9 +48,21 @@ func loadData() {
 	log.Println("Data loaded successfully.")
 }
 
+// mercatorY converts a latitude in degrees to the Mercator Y coordinate.
+// Latitude is clamped to [-85, 85] to avoid infinity at the poles.
+func mercatorY(lat float64) float64 {
+	if lat > 85.0 {
+		lat = 85.0
+	} else if lat < -85.0 {
+		lat = -85.0
+	}
+	latRad := lat * math.Pi / 180.0
+	return math.Log(math.Tan(math.Pi/4 + latRad/2))
+}
+
 func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 	// Load and parse the GeoJSON file
-	raw, err := ioutil.ReadFile("data/countries.geo.json")
+	raw, err := os.ReadFile(geoJSONPath)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +78,7 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 		height = 512
 	)
 	dc := gg.NewContext(width, height)
-	dc.SetRGB(0.9, 0.9, 0.9) // Set background color
+	dc.SetRGB(0.65, 0.81, 0.89) // Ocean blue background
 	dc.Clear()
 
 	// Create a map for quick lookup of visited countries
@@ -71,32 +87,55 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 		visitedSet[country] = true
 	}
 
-	// Find the bounding box of the world to scale the map
-	minX, minY, maxX, maxY := 180.0, 90.0, -180.0, -90.0
+	// Find the bounding box of the world to scale the map using Mercator Y
+	minX, maxX := 180.0, -180.0
+	minMercY, maxMercY := math.MaxFloat64, -math.MaxFloat64
+
+	updateBounds := func(points [][]float64) {
+		for _, point := range points {
+			if len(point) < 2 {
+				continue
+			}
+			lon, lat := point[0], point[1]
+			if lon < minX {
+				minX = lon
+			}
+			if lon > maxX {
+				maxX = lon
+			}
+			my := mercatorY(lat)
+			if my < minMercY {
+				minMercY = my
+			}
+			if my > maxMercY {
+				maxMercY = my
+			}
+		}
+	}
+
 	for _, feature := range fc.Features {
 		if feature.Geometry == nil {
 			continue
 		}
-		for _, polygon := range feature.Geometry.Polygon {
-			for _, point := range polygon {
-				if point[0] < minX {
-					minX = point[0]
-				}
-				if point[0] > maxX {
-					maxX = point[0]
-				}
-				if point[1] < minY {
-					minY = point[1]
-				}
-				if point[1] > maxY {
-					maxY = point[1]
+		if feature.Geometry.IsPolygon() {
+			for _, ring := range feature.Geometry.Polygon {
+				updateBounds(ring)
+			}
+		} else if feature.Geometry.IsMultiPolygon() {
+			for _, polygon := range feature.Geometry.MultiPolygon {
+				for _, ring := range polygon {
+					updateBounds(ring)
 				}
 			}
 		}
 	}
 
+	if maxX <= minX || maxMercY <= minMercY {
+		return nil, fmt.Errorf("could not compute valid map bounds from GeoJSON")
+	}
+
 	scaleX := float64(width) / (maxX - minX)
-	scaleY := float64(height) / (maxY - minY)
+	scaleY := float64(height) / (maxMercY - minMercY)
 
 	// Draw each country
 	for _, feature := range fc.Features {
@@ -107,28 +146,34 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 		if !ok {
 			continue
 		}
+		if feature.Geometry == nil {
+			continue
+		}
 		isVisited := visitedSet[countryName]
 
 		if isVisited {
-			dc.SetColor(color.RGBA{R: 212, G: 172, B: 13, A: 255}) // Gold for visited
+			dc.SetColor(color.RGBA{R: 231, G: 76, B: 60, A: 255}) // Warm red for visited
 		} else {
-			dc.SetColor(color.RGBA{R: 200, G: 200, B: 200, A: 255}) // Gray for not visited
+			dc.SetColor(color.RGBA{R: 230, G: 230, B: 220, A: 255}) // Warm white for unvisited
 		}
 
 		// Handle both Polygon and MultiPolygon geometries
 		if feature.Geometry.IsPolygon() {
 			for _, ring := range feature.Geometry.Polygon {
-				drawPolygon(dc, ring, minX, maxY, scaleX, scaleY)
+				drawPolygon(dc, ring, minX, maxMercY, scaleX, scaleY)
 			}
 		} else if feature.Geometry.IsMultiPolygon() {
 			for _, polygon := range feature.Geometry.MultiPolygon {
 				for _, ring := range polygon {
-					drawPolygon(dc, ring, minX, maxY, scaleX, scaleY)
+					drawPolygon(dc, ring, minX, maxMercY, scaleX, scaleY)
 				}
 			}
 		}
 
-		dc.Fill()
+		dc.FillPreserve()
+		dc.SetColor(color.RGBA{R: 100, G: 100, B: 100, A: 180})
+		dc.SetLineWidth(0.5)
+		dc.Stroke()
 	}
 
 	// Encode the image to a buffer
@@ -140,13 +185,16 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 	return buffer, nil
 }
 
-func drawPolygon(dc *gg.Context, polygon [][]float64, minX, maxY, scaleX, scaleY float64) {
+func drawPolygon(dc *gg.Context, polygon [][]float64, minX, maxMercY, scaleX, scaleY float64) {
 	if len(polygon) == 0 {
 		return
 	}
 	for i, point := range polygon {
+		if len(point) < 2 {
+			continue
+		}
 		x := (point[0] - minX) * scaleX
-		y := (maxY - point[1]) * scaleY
+		y := (maxMercY - mercatorY(point[1])) * scaleY
 		if i == 0 {
 			dc.MoveTo(x, y)
 		} else {

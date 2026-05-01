@@ -33,7 +33,7 @@ The application is built with a lightweight Go backend and a pure JavaScript fro
 1. Open the Telegram Mini App from your bot
 2. Click the "+" button to enter add mode
 3. Search for countries and click to add them to your list
-4. Your map will update automatically to show visited countries in gold
+4. Your map will update automatically to show visited countries in red
 
 ### Adding Countries via Location (NEW!)
 
