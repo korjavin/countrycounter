@@ -56,9 +56,9 @@ Upgrade the map rendering in generateMapImage to produce a more polished, visual
 
 ### Task 4: Verify acceptance criteria
 
-- [ ] Run full test suite: `cd backend && go test ./...`
-- [ ] Run linter: `cd backend && go vet ./...`
-- [ ] Visually verify the generated map by running the bot or adding a test that writes the PNG to a temp file for inspection
+- [x] Run full test suite: `cd backend && go test ./...`
+- [x] Run linter: `cd backend && go vet ./...`
+- [x] Visually verify the generated map by running the bot or adding a test that writes the PNG to a temp file for inspection
 
 ### Task 5: Update documentation
 

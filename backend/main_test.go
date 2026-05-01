@@ -5,6 +5,7 @@ import (
 	"image"
 	_ "image/png"
 	"math"
+	"os"
 	"testing"
 )
 
@@ -69,6 +70,23 @@ func TestMercatorY(t *testing.T) {
 	if mercatorY(-90) != mercatorY(-85) {
 		t.Error("mercatorY(-90) should equal mercatorY(-85) due to clamping")
 	}
+}
+
+func TestGenerateMapImageWriteToFile(t *testing.T) {
+	buf, err := generateMapImage([]string{"Germany", "France", "Brazil", "United States of America"})
+	if err != nil {
+		t.Fatalf("generateMapImage failed: %v", err)
+	}
+	f, err := os.CreateTemp("", "countrycounter-map-*.png")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer f.Close()
+	if _, err := f.Write(buf.Bytes()); err != nil {
+		t.Fatalf("failed to write PNG: %v", err)
+	}
+	t.Logf("map image written to %s for visual inspection", f.Name())
+	assertValidPNG(t, buf, 1024, 512)
 }
 
 func assertValidPNG(t *testing.T, buf *bytes.Buffer, wantW, wantH int) {
