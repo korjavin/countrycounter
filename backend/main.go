@@ -93,6 +93,9 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 
 	updateBounds := func(points [][]float64) {
 		for _, point := range points {
+			if len(point) < 2 {
+				continue
+			}
 			lon, lat := point[0], point[1]
 			if lon < minX {
 				minX = lon
@@ -125,6 +128,10 @@ func generateMapImage(visitedCountries []string) (*bytes.Buffer, error) {
 				}
 			}
 		}
+	}
+
+	if maxX <= minX || maxMercY <= minMercY {
+		return nil, fmt.Errorf("could not compute valid map bounds from GeoJSON")
 	}
 
 	scaleX := float64(width) / (maxX - minX)
@@ -183,6 +190,9 @@ func drawPolygon(dc *gg.Context, polygon [][]float64, minX, maxMercY, scaleX, sc
 		return
 	}
 	for i, point := range polygon {
+		if len(point) < 2 {
+			continue
+		}
 		x := (point[0] - minX) * scaleX
 		y := (maxMercY - mercatorY(point[1])) * scaleY
 		if i == 0 {
