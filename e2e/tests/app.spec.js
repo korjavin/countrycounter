@@ -8,6 +8,39 @@ test.describe('Country Counter App', () => {
     await expect(page.locator('#map')).toBeVisible();
   });
 
+  test('world map renders visited paths matching seeded set', async ({ page }) => {
+    await page.goto(appUrl);
+
+    await page.waitForFunction(
+      () =>
+        typeof window.WorldMap !== 'undefined' &&
+        typeof window.d3 !== 'undefined' &&
+        typeof window.topojson !== 'undefined',
+    );
+
+    const seeded = ['United States', 'France', 'Japan'];
+    await page.evaluate(async (visited) => {
+      const svg = document.getElementById('world');
+      await window.WorldMap.render({
+        svg,
+        visitedSet: new Set(visited),
+        style: 'solid',
+      });
+    }, seeded);
+
+    await expect
+      .poll(
+        async () => await page.locator('svg.world path.country').count(),
+        { timeout: 10000 },
+      )
+      .toBeGreaterThan(0);
+
+    const visitedCount = await page
+      .locator('svg.world path.country.visited')
+      .count();
+    expect(visitedCount).toBe(seeded.length);
+  });
+
   test('should add a country and update the count', async ({ page }) => {
     await page.goto(appUrl);
 

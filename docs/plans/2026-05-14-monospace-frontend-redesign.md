@@ -175,24 +175,25 @@ design URL. Original source:
       selectors present; no `.page`/`.plate` chrome leftovers)
 
 ### Task 4: Build the d3-geo + topojson SVG world map
-- [ ] add a new `frontend/js/world-map.js` (vanilla JS, no JSX) that
+- [x] add a new `frontend/js/world-map.js` (vanilla JS, no JSX) that
       exposes `window.WorldMap.render({ svg, visitedSet, style,
       lastAddedGeo })` — fetches `countries-110m.json` once, caches
       paths, redraws country fills when `visitedSet` or `style`
       changes, draws sphere/graticule/countries with the same CSS
       classes as the prototype (`world`, `country`, `visited`,
       `graticule`, `sphere`)
-- [ ] include the `<defs><pattern id="dotfill">…</pattern></defs>` so
+- [x] include the `<defs><pattern id="dotfill">…</pattern></defs>` so
       the `style-dotfill` variant works
-- [ ] include the `NAME_ALIASES` table from
+- [x] include the `NAME_ALIASES` table from
       `docs/design/project/world-map.jsx` so
       canonical names from `all_countries.json` map to topojson names
       correctly (United States ↔ United States of America, etc.)
-- [ ] load it via a `<script src="js/world-map.js">` tag in index.html
+- [x] load it via a `<script src="js/world-map.js">` tag in index.html
       (insert before `js/app.js` so `app.js` can call it)
-- [ ] manual check: page loads, world silhouette appears, marking
-      `["United States","France"]` visited shades the right shapes
-- [ ] add a Playwright assertion that `svg.world path.country.visited`
+- [x] manual test (skipped - not automatable in this loop; covered by
+      the new Playwright assertion which invokes WorldMap.render with a
+      seeded visited set and verifies the rendered `.visited` count)
+- [x] add a Playwright assertion that `svg.world path.country.visited`
       count equals the number of seeded visited countries after page
       load
 
