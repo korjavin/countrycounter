@@ -63,7 +63,7 @@ We respect your privacy. Here's a transparent look at the data we collect and ho
 -   **What we store**: We only store your Telegram User ID and the list of countries you have visited. We do not store your name, username, or any other personal information.
 -   **Location data**: When you send a location, we use the coordinates only to determine the country name. **We do not store your GPS coordinates, specific locations, addresses, or any location history.** Only the country name is saved.
 -   **How we use it**: Your User ID is used as a key to retrieve your list of visited countries. The list of countries is used to generate your personalized map and statistics.
--   **Data Storage**: All data is stored in a `data.json` file on the server where the application is hosted. You have full control over this data.
+-   **Data Storage**: All data is stored in a SQLite database file (`data.db`) on the server where the application is hosted. You have full control over this data. (Legacy: instances upgrading from a previous version may still have a `data.json` file — on first start the backend auto-imports it once and then ignores it.)
 -   **No Third-Party Tracking**: The application does not use any third-party analytics or tracking services.
 -   **Offline Processing**: Location-to-country conversion happens entirely on your server without sending data to external geocoding services.
 
@@ -78,7 +78,8 @@ We respect your privacy. Here's a transparent look at the data we collect and ho
     -   **Standard `net/http` package**: For routing and serving files.
     -   **[revgeo](https://github.com/filipkroca/revgeo)**: Fast offline reverse geocoding library for converting GPS coordinates to country codes.
     -   **[Telegram Bot API](https://github.com/go-telegram-bot-api/telegram-bot-api)**: Official Go wrapper for the Telegram Bot API.
-    -   **JSON**: For simple, file-based data storage.
+    -   **SQLite** (via [modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite), a pure-Go driver): Embedded database for durable storage of visited countries.
+    -   **[pressly/goose](https://github.com/pressly/goose)**: Embedded SQL migrations applied automatically on startup.
 -   **Deployment**:
     -   **Docker**: To containerize the application.
     -   **GitHub Actions**: For continuous integration and deployment.
@@ -128,7 +129,11 @@ To run this project, you will need Docker installed on your machine.
 
 ## Data Persistence
 
-The application stores user data in a JSON file located at `/app/backend/data.json` inside the container. To ensure that this data is not lost when the container is stopped or removed, you should mount a Docker volume to this path.
+The application stores user data in a SQLite database at `/app/backend/data.db` inside the container (configurable via the `DB_PATH` environment variable). To ensure data is not lost when the container is stopped or removed, mount a Docker volume to `/app/backend`.
+
+Schema is managed by `pressly/goose` migrations embedded in the binary and applied automatically on startup.
+
+**Auto-import from legacy `data.json`**: If on startup the database is empty *and* a `data.json` file exists at `/app/backend/data.json`, the backend reads it once and imports all `(user, country)` pairs into the new schema, logging `Auto-imported N rows from data.json`. On subsequent restarts — or if `data.json` is absent — the import step is skipped silently. This makes the upgrade path from older versions a no-op: leave the old `data.json` mounted on the first start and the new image will migrate it for you.
 
 You can use a `docker-compose.yml` file to manage the container and its volume easily.
 
@@ -142,6 +147,7 @@ You can use a `docker-compose.yml` file to manage the container and its volume e
           - "8080:8080"
         environment:
           - TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN"
+          - DB_PATH=/app/backend/data.db
         volumes:
           - countrycounter-data:/app/backend
         restart: unless-stopped
@@ -155,7 +161,7 @@ You can use a `docker-compose.yml` file to manage the container and its volume e
     docker-compose up -d
     ```
 
-This setup will create a named volume `countrycounter-data` on your host machine and mount it to `/app/backend` in the container. All data saved by the application will be stored in this volume, ensuring it persists across container restarts.
+This setup will create a named volume `countrycounter-data` on your host machine and mount it to `/app/backend` in the container. The SQLite database file and any legacy `data.json` will be stored in this volume, ensuring data persists across container restarts.
 
 ## Running with Portainer
 
@@ -175,6 +181,7 @@ services:
       - "8080:8080"
     environment:
       - TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN"
+      - DB_PATH=/app/backend/data.db
     volumes:
       - countrycounter-data:/app/backend
     restart: unless-stopped

@@ -17,6 +17,7 @@ services:
     restart: unless-stopped
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - DB_PATH=/app/backend/data.db
 
 networks:
   vaultwarden_default:
