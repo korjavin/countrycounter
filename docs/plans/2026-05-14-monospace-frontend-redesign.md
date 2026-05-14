@@ -35,15 +35,34 @@ The scaffolding parts of the prototype (the iOS/device frame, left and
 right "plate" marginalia, tweaks panel) are designer-only chrome and
 will not ship — the app already runs inside Telegram on a real device.
 
+## Source materials (vendored)
+The full Claude Design handoff bundle is checked into the repo at
+`docs/design/` so this plan stays reproducible without refetching the
+design URL. Original source:
+`https://api.anthropic.com/v1/design/h/NLFBTX80T4dYFOn0kpkwlw`.
+
+- `docs/design/README.md` — bundle's own README ("CODING AGENTS: READ
+  THIS FIRST"), with the user-intent guidance
+- `docs/design/chats/chat1.md` — full design conversation; **read for
+  intent** (e.g. the user explicitly asked for the map to be
+  display-only, no tap-to-toggle)
+- `docs/design/project/index.html` — primary design file
+- `docs/design/project/styles.css` — app-level component styles
+- `docs/design/project/lib/monospace.css` — design tokens (colors,
+  font, spacing)
+- `docs/design/project/app.jsx` — React app with full interaction
+  logic (reference, not shipped)
+- `docs/design/project/world-map.jsx` — d3-geo + topojson SVG
+  renderer (reference, not shipped)
+- `docs/design/project/lib/dotgrid-bg.svg` — repeating dot grid
+  texture (asset to copy)
+- `docs/design/project/fonts/JetBrainsMono-400.woff2` and
+  `JetBrainsMono-400italic.woff2` — variable JetBrains Mono (assets
+  to copy)
+- `docs/design/project/data/all_countries.json` — same shape as the
+  existing `frontend/all_countries.json`
+
 ## Context (from discovery)
-- Design bundle: `/tmp/design-fetch/countrycountrer/`
-  - `project/index.html` — primary file
-  - `project/styles.css` — app-level component styles
-  - `project/lib/monospace.css` — design tokens (colors, font, spacing)
-  - `project/app.jsx` — React app with full interaction logic
-  - `project/world-map.jsx` — d3-geo + topojson SVG renderer
-  - `project/lib/dotgrid-bg.svg` — repeating dot grid texture
-  - `project/fonts/JetBrainsMono-400*.woff2` — variable JetBrains Mono
 - Files affected:
   - `frontend/index.html` — full rewrite
   - `frontend/css/style.css` — full rewrite, replaced by the
@@ -100,15 +119,15 @@ will not ship — the app already runs inside Telegram on a real device.
 ## Implementation Steps
 
 ### Task 1: Bring design assets into the frontend
-- [ ] copy `JetBrainsMono-400.woff2` and `JetBrainsMono-400italic.woff2`
-      from the design bundle into `frontend/fonts/`
-- [ ] copy `dotgrid-bg.svg` from the design bundle into
+- [ ] copy `docs/design/project/fonts/JetBrainsMono-400.woff2` and
+      `JetBrainsMono-400italic.woff2` into `frontend/fonts/`
+- [ ] copy `docs/design/project/lib/dotgrid-bg.svg` into
       `frontend/css/dotgrid-bg.svg`
 - [ ] create `frontend/css/monospace.css` with the design-token
       `:root` block (colors, type scale, spacing, motion) and dark
-      `:root[data-theme="dark"]` overrides — copied verbatim from the
-      bundle's `lib/monospace.css`, minus the typography utilities we
-      do not use
+      `:root[data-theme="dark"]` overrides — copied verbatim from
+      `docs/design/project/lib/monospace.css`, minus the typography
+      utilities we do not use
 - [ ] verify in a browser that fonts load (no 404 in devtools network
       panel) — the page still works with the old layout
 - [ ] no behavior change in this task; smoke check only
@@ -133,8 +152,9 @@ will not ship — the app already runs inside Telegram on a real device.
 
 ### Task 3: Replace `frontend/css/style.css` with the design's component CSS
 - [ ] write a new `frontend/css/style.css` that imports
-      `monospace.css` and contains the component styles from the
-      bundle's `styles.css` for: `.app`, `.app-header`, `.brand`,
+      `monospace.css` and contains the component styles from
+      `docs/design/project/styles.css` for: `.app`, `.app-header`,
+      `.brand`,
       `.qa`, `.hero` + `.progress`, `.map-wrap` + `.world` paths,
       `.map-corner`, `.last-added`, `.actions`, `.combo`, `.btn`,
       `.drawer`, `.continents`, `.country-row`, `.empty`, `.toast`,
@@ -158,7 +178,8 @@ will not ship — the app already runs inside Telegram on a real device.
       `graticule`, `sphere`)
 - [ ] include the `<defs><pattern id="dotfill">…</pattern></defs>` so
       the `style-dotfill` variant works
-- [ ] include the `NAME_ALIASES` table from `world-map.jsx` so
+- [ ] include the `NAME_ALIASES` table from
+      `docs/design/project/world-map.jsx` so
       canonical names from `all_countries.json` map to topojson names
       correctly (United States ↔ United States of America, etc.)
 - [ ] load it via a `<script src="js/world-map.js">` tag in index.html
@@ -218,7 +239,7 @@ will not ship — the app already runs inside Telegram on a real device.
 - [ ] visual diff vs. prototype: header brand, hero stat, progress
       cells, map silhouette + visited shading, quick actions strip,
       drawer with continents and visited rows, autocomplete dropdown,
-      toast — each must look like the bundle's `index.html`
+      toast — each must look like `docs/design/project/index.html`
 - [ ] keyboard interactions: input focus on `+ add`, ↑/↓ in
       suggestions, Enter adds top match, Escape clears
 - [ ] dark mode toggle from Telegram WebApp (`tg.colorScheme`)
@@ -235,7 +256,7 @@ will not ship — the app already runs inside Telegram on a real device.
 
 ## Technical Details
 
-### Design tokens (from `monospace.css`)
+### Design tokens (from `docs/design/project/lib/monospace.css`)
 - Light: `--bg-0:#f4f1ea`, `--bg-1:#ece8de`, `--bg-elev:#fbf9f3`,
   `--fg-0:#16140f`, `--fg-1:#3a362d`, `--fg-2:#6b6657`,
   `--line-1:#16140f`, `--line-2:#c8c1ad`.
@@ -253,13 +274,15 @@ will not ship — the app already runs inside Telegram on a real device.
   `preserveAspectRatio="xMidYMid meet"`.
 - World atlas: `https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json`.
 - Visited countries are matched against topojson `properties.name`
-  via the `NAME_ALIASES` table from `world-map.jsx`.
+  via the `NAME_ALIASES` table from
+  `docs/design/project/world-map.jsx`.
 - Map is **display-only** — per the chat transcript the user
   explicitly removed tap-to-toggle; we keep it that way.
 
 ### Continent breakdown
 - Static name-to-continent table (`CONTINENT_OF`) lifted from
-  `app.jsx`; totals `{ AF:54, EU:46, AS:47, NA:23, SA:12, OC:14 }`;
+  `docs/design/project/app.jsx`; totals
+  `{ AF:54, EU:46, AS:47, NA:23, SA:12, OC:14 }`;
   labels `{ NA:"N.AMER", SA:"S.AMER", EU:"EUROPE", AF:"AFRICA",
   AS:"ASIA", OC:"OCEAN." }`.
 
