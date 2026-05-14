@@ -162,9 +162,9 @@ Benefits: durable transactional writes (no more re-marshaling the whole map on e
 **Files:**
 - Modify: `readme.md`, `DEPLOYMENT.md`
 
-- [ ] Update `readme.md` storage section: replace any mention of `data.json` with SQLite (`backend/data.db`); note that `data.json`, if still present on first start, is auto-imported once and then ignored
-- [ ] Update `DEPLOYMENT.md` upgrade procedure: keep `data.json` mounted alongside the new DB volume for one release so the first start of the new image can auto-import it; after a confidence window, drop the `data.json` mount
-- [ ] No code tests for docs, but verify the documented flow actually works by starting the server locally with a copy of `data.json` present and a fresh `data.db` path
+- [x] Update `readme.md` storage section: replace any mention of `data.json` with SQLite (`backend/data.db`); note that `data.json`, if still present on first start, is auto-imported once and then ignored
+- [x] Update `DEPLOYMENT.md` upgrade procedure: keep `data.json` mounted alongside the new DB volume for one release so the first start of the new image can auto-import it; after a confidence window, drop the `data.json` mount
+- [x] No code tests for docs, but verify the documented flow actually works by starting the server locally with a copy of `data.json` present and a fresh `data.db` path — confirmed: first start logged `Auto-imported 1 rows from .../data.json`, second start logged `No .../data.json found or DB already populated — skipping auto-import`
 
 *Note: ralphex automatically moves completed plans to `docs/plans/completed/`*
 
