@@ -198,41 +198,44 @@ design URL. Original source:
       load
 
 ### Task 5: Rewrite `frontend/js/app.js` to drive the new UI
-- [ ] keep the same backend API calls (GET/POST/DELETE
+- [x] keep the same backend API calls (GET/POST/DELETE
       `/api/countries?userId=…`) and the Telegram WebApp init flow
-- [ ] introduce a small in-module state object: `{ visited: [{name,
+- [x] introduce a small in-module state object: `{ visited: [{name,
       addedAt}], allCountries, sort: 'recent'|'alpha'|'continent',
       showList, query, activeSuggest }`
-- [ ] hero render: `padStart(2,'0')` count, `/195` denominator, `NN%`
+- [x] hero render: `padStart(2,'0')` count, `/195` denominator, `NN%`
       caption with "remaining" tail, 26 progress cells with `.on`
       class for filled cells
-- [ ] quick-actions strip: focus input on `+ add`, toggle drawer on
+- [x] quick-actions strip: focus input on `+ add`, toggle drawer on
       hide/show list, cycle sort on sort, copy list to clipboard on
       share — each action triggers a toast
-- [ ] search combo: live `suggest` dropdown filtering
+- [x] search combo: live `suggest` dropdown filtering
       `allCountries`, arrow-key navigation, Enter to add, Escape to
       clear, click suggestion to add, `×` clear button
-- [ ] drawer: continent breakdown (6 cells, `.full` when num===den),
+- [x] drawer: continent breakdown (6 cells, `.full` when num===den),
       `drawer-head` count + sort label, segmented sort control, list
       of `.country-row` (idx, name, continent meta, recent-only `Xd
       ago` meta, `✗` delete), empty state when zero
-- [ ] toast helper: `showToast(text, isError)` that toggles `.err`
+- [x] toast helper: `showToast(text, isError)` that toggles `.err`
       and auto-clears in 2.4s
-- [ ] dark mode: read `tg.colorScheme` from `Telegram.WebApp` and
+- [x] dark mode: read `tg.colorScheme` from `Telegram.WebApp` and
       set `document.documentElement.dataset.theme` accordingly; fall
       back to `prefers-color-scheme`
-- [ ] map integration: instantiate `WorldMap.render` once, then
+- [x] map integration: instantiate `WorldMap.render` once, then
       re-call it whenever `visited` changes (passing the new
       `visitedSet`); briefly highlight `lastAddedGeo` for 2s after
       add
-- [ ] preserve standalone-mode behavior (no userId → in-memory state)
-- [ ] update `e2e/tests/app.spec.js` to drive the new combo input
+- [x] preserve standalone-mode behavior (no userId → in-memory state)
+- [x] update `e2e/tests/app.spec.js` to drive the new combo input
       (`#country-input`), the new add button (`#add-country-btn`),
       assert `#visited-count`, click `#toggle-list-btn`, and use the
       new `.country-row .x` selector for delete
-- [ ] add e2e cases: hero progress cell count after add, sort
+- [x] add e2e cases: hero progress cell count after add, sort
       segment switch toggles `.on`, toast appears with success text
-- [ ] run Playwright e2e — must pass before next task
+- [x] run Playwright e2e — must pass before next task
+      (7/7 passed against a local server on PORT=18081; backend
+      now reads `PORT` env var to avoid host port conflicts during
+      test runs)
 
 ### Task 6: Server static-file sanity + final polish
 - [ ] confirm `backend/main.go` still serves the new asset paths

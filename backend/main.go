@@ -245,8 +245,13 @@ func main() {
 	fs := http.FileServer(http.Dir("./frontend"))
 	mux.Handle("/", fs)
 
-	log.Println("Starting server on :8080")
-	if err := http.ListenAndServe(":8080", loggingMiddleware(mux)); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	addr := ":" + port
+	log.Printf("Starting server on %s", addr)
+	if err := http.ListenAndServe(addr, loggingMiddleware(mux)); err != nil {
 		log.Fatalf("could not start server: %v", err)
 	}
 }

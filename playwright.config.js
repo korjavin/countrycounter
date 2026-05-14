@@ -10,7 +10,7 @@ module.exports = defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? 'list' : 'html',
   use: {
-    baseURL: 'http://localhost:8080',
+    baseURL: process.env.APP_BASE_URL || 'http://localhost:8080',
     trace: 'on-first-retry',
   },
   projects: [
