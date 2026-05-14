@@ -79,8 +79,8 @@ func (r *VisitsRepo) Delete(userID int64, country string) (bool, error) {
 // ImportPairs inserts every (userID, country) pair in data within a single
 // transaction. If any insert fails the transaction is rolled back so the
 // table is left in its prior state, letting the caller safely retry on the
-// next start. Returns the number of pairs processed (counting duplicates,
-// which become no-ops because of INSERT OR IGNORE).
+// next start. Returns the number of rows actually inserted — duplicates
+// within data are skipped by INSERT OR IGNORE and are not counted.
 func (r *VisitsRepo) ImportPairs(data map[int64][]string) (int, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
@@ -97,10 +97,15 @@ func (r *VisitsRepo) ImportPairs(data map[int64][]string) (int, error) {
 	imported := 0
 	for userID, countries := range data {
 		for _, country := range countries {
-			if _, err := stmt.Exec(userID, country); err != nil {
+			res, err := stmt.Exec(userID, country)
+			if err != nil {
 				return 0, fmt.Errorf("import (user %d, country %q): %w", userID, country, err)
 			}
-			imported++
+			affected, err := res.RowsAffected()
+			if err != nil {
+				return 0, fmt.Errorf("rows affected for (user %d, country %q): %w", userID, country, err)
+			}
+			imported += int(affected)
 		}
 	}
 

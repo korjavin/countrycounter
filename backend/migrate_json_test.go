@@ -151,6 +151,31 @@ func TestMaybeImportJSON_PopulatedDB_SkipsAndPreserves(t *testing.T) {
 	}
 }
 
+func TestMaybeImportJSON_DuplicatesInJSON_CountsActualInserts(t *testing.T) {
+	repo := newImporterRepo(t)
+
+	const payload = `{"1": ["Germany", "Germany", "France"]}`
+	path := writeJSON(t, payload)
+
+	n, err := MaybeImportJSON(repo, path)
+	if err != nil {
+		t.Fatalf("MaybeImportJSON: %v", err)
+	}
+	if n != 2 {
+		t.Errorf("imported = %d, want 2 (duplicates in JSON must not inflate the count)", n)
+	}
+
+	got, err := repo.List(1)
+	if err != nil {
+		t.Fatalf("List(1): %v", err)
+	}
+	sort.Strings(got)
+	want := []string{"France", "Germany"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("List(1) = %v, want %v", got, want)
+	}
+}
+
 func TestMaybeImportJSON_IdempotentSecondCall(t *testing.T) {
 	repo := newImporterRepo(t)
 	path := writeJSON(t, `{"1": ["Germany", "France"]}`)
