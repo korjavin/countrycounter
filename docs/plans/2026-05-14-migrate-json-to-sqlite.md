@@ -140,11 +140,11 @@ Benefits: durable transactional writes (no more re-marshaling the whole map on e
 **Files:**
 - Modify: `Dockerfile`, `docker-compose.yml`, `docker-compose.prod.yml`
 
-- [ ] Ensure the Docker image includes the new SQLite DB file location on a persistent volume (replace or sit alongside the existing `data.json` volume mapping). Default in-container path: `/app/backend/data.db`
-- [ ] In `docker-compose.yml` and `docker-compose.prod.yml`, add a volume mount for the DB file/directory (a named volume or bind mount), preserving any existing `data.json` mount during the cutover window
-- [ ] Set env var `DB_PATH=/app/backend/data.db` in compose files for clarity
-- [ ] No production code changes here, so no new test code — but: run `docker compose config` to validate the YAML is well-formed
-- [ ] Run `cd backend && go test ./...` — must pass before task 8
+- [x] Ensure the Docker image includes the new SQLite DB file location on a persistent volume (replace or sit alongside the existing `data.json` volume mapping). Default in-container path: `/app/backend/data.db`
+- [x] In `docker-compose.yml` and `docker-compose.prod.yml`, add a volume mount for the DB file/directory (a named volume or bind mount), preserving any existing `data.json` mount during the cutover window
+- [x] Set env var `DB_PATH=/app/backend/data.db` in compose files for clarity
+- [x] No production code changes here, so no new test code — but: run `docker compose config` to validate the YAML is well-formed
+- [x] Run `cd backend && go test ./...` — must pass before task 8
 
 ### Task 8: Verify acceptance criteria
 
