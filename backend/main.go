@@ -11,41 +11,22 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/filipkroca/revgeo"
 	"github.com/fogleman/gg"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	geojson "github.com/paulmach/go.geojson"
-)
 
-// UserData holds the mapping from a Telegram user ID to a list of visited countries.
-var UserData map[int64][]string
-var mutex = &sync.Mutex{}
+	"github.com/korjavin/countrycounter/backend/store"
+)
 
 // geoJSONPath is the path to the countries GeoJSON file, relative to the working directory.
 // Override in tests since test working directory is the package directory (backend/).
 var geoJSONPath = "data/countries.geo.json"
 
-// loadData reads the data from data.json into the UserData map.
-func loadData() {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	bytes, err := os.ReadFile("backend/data.json")
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Println("data.json not found, initializing empty map.")
-			UserData = make(map[int64][]string)
-			return
-		}
-		log.Fatalf("could not read data.json: %v", err)
-	}
-
-	if err := json.Unmarshal(bytes, &UserData); err != nil {
-		log.Fatalf("could not parse data.json: %v", err)
-	}
-	log.Println("Data loaded successfully.")
+// server bundles the HTTP handlers around their dependency: the visits repo.
+type server struct {
+	repo *store.VisitsRepo
 }
 
 // mercatorY converts a latitude in degrees to the Mercator Y coordinate.
@@ -204,26 +185,26 @@ func drawPolygon(dc *gg.Context, polygon [][]float64, minX, maxMercY, scaleX, sc
 	dc.ClosePath()
 }
 
-// saveData writes the current UserData map to data.json.
-func saveData() {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	bytes, err := json.MarshalIndent(UserData, "", "  ")
-	if err != nil {
-		log.Fatalf("could not marshal data: %v", err)
-	}
-
-	if err := os.WriteFile("backend/data.json", bytes, 0644); err != nil {
-		log.Fatalf("could not write to data.json: %v", err)
-	}
-	log.Println("Data saved successfully.")
-}
-
 func main() {
-	loadData()
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "backend/data.db"
+	}
 
-	go startTelegramBot()
+	db, err := store.Open(dbPath)
+	if err != nil {
+		log.Fatalf("could not open database at %s: %v", dbPath, err)
+	}
+	defer db.Close()
+
+	if err := store.Migrate(db); err != nil {
+		log.Fatalf("could not run migrations: %v", err)
+	}
+
+	repo := store.NewVisitsRepo(db)
+	srv := &server{repo: repo}
+
+	go startTelegramBot(repo)
 
 	mux := http.NewServeMux()
 
@@ -233,7 +214,7 @@ func main() {
 	})
 
 	// API to get and update countries
-	mux.HandleFunc("/api/countries", handleCountries)
+	mux.HandleFunc("/api/countries", srv.handleCountries)
 
 	// Serve only the GeoJSON file (not the entire data directory for security)
 	mux.HandleFunc("/data/countries.geo.json", func(w http.ResponseWriter, r *http.Request) {
@@ -257,20 +238,20 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func handleCountries(w http.ResponseWriter, r *http.Request) {
+func (s *server) handleCountries(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		getCountries(w, r)
+		s.getCountries(w, r)
 	case http.MethodPost:
-		addCountry(w, r)
+		s.addCountry(w, r)
 	case http.MethodDelete:
-		deleteCountry(w, r)
+		s.deleteCountry(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-func getCountries(w http.ResponseWriter, r *http.Request) {
+func (s *server) getCountries(w http.ResponseWriter, r *http.Request) {
 	userIDStr := r.URL.Query().Get("userId")
 	if userIDStr == "" {
 		http.Error(w, "userId query parameter is required", http.StatusBadRequest)
@@ -282,11 +263,11 @@ func getCountries(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mutex.Lock()
-	defer mutex.Unlock()
-	countries, ok := UserData[userID]
-	if !ok {
-		countries = []string{} // Return empty list if user not found
+	countries, err := s.repo.List(userID)
+	if err != nil {
+		log.Printf("repo.List failed for user %d: %v", userID, err)
+		http.Error(w, "Failed to load countries", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -295,7 +276,7 @@ func getCountries(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func addCountry(w http.ResponseWriter, r *http.Request) {
+func (s *server) addCountry(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		UserID  int64  `json:"userId"`
 		Country string `json:"country"`
@@ -311,17 +292,17 @@ func addCountry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mutex.Lock()
-	UserData[req.UserID] = append(UserData[req.UserID], req.Country)
-	mutex.Unlock()
+	if err := s.repo.Add(req.UserID, req.Country); err != nil {
+		log.Printf("repo.Add failed for user %d / %s: %v", req.UserID, req.Country, err)
+		http.Error(w, "Failed to save country", http.StatusInternalServerError)
+		return
+	}
 
 	log.Printf("Saving country %s for user %d", req.Country, req.UserID)
-	saveData()
-
 	w.WriteHeader(http.StatusCreated)
 }
 
-func deleteCountry(w http.ResponseWriter, r *http.Request) {
+func (s *server) deleteCountry(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		UserID  int64  `json:"userId"`
 		Country string `json:"country"`
@@ -337,27 +318,18 @@ func deleteCountry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mutex.Lock()
-	countries, ok := UserData[req.UserID]
-	if !ok {
-		mutex.Unlock()
-		http.Error(w, "User not found", http.StatusNotFound)
+	removed, err := s.repo.Delete(req.UserID, req.Country)
+	if err != nil {
+		log.Printf("repo.Delete failed for user %d / %s: %v", req.UserID, req.Country, err)
+		http.Error(w, "Failed to delete country", http.StatusInternalServerError)
+		return
+	}
+	if !removed {
+		http.Error(w, "Country not found for this user", http.StatusNotFound)
 		return
 	}
 
-	newCountries := []string{}
-	for _, country := range countries {
-		if country != req.Country {
-			newCountries = append(newCountries, country)
-		}
-	}
-
-	UserData[req.UserID] = newCountries
-	mutex.Unlock()
-
 	log.Printf("Deleting country %s for user %d", req.Country, req.UserID)
-	saveData()
-
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -381,7 +353,7 @@ func getCountryFromLocation(latitude, longitude float64) (string, error) {
 	return countryName, nil
 }
 
-func startTelegramBot() {
+func startTelegramBot(repo *store.VisitsRepo) {
 	token := os.Getenv("TELEGRAM_BOT_TOKEN")
 	if token == "" {
 		log.Println("TELEGRAM_BOT_TOKEN not set, skipping bot initialization.")
@@ -427,21 +399,17 @@ func startTelegramBot() {
 				continue
 			}
 
-			// Check if country is already in user's list
-			mutex.Lock()
-			countries, ok := UserData[userID]
-			alreadyVisited := false
-			if ok {
-				for _, c := range countries {
-					if c == country {
-						alreadyVisited = true
-						break
-					}
+			alreadyVisited, err := repo.Has(userID, country)
+			if err != nil {
+				log.Printf("repo.Has failed for user %d / %s: %v", userID, country, err)
+				msg.Text = "Sorry, something went wrong saving that country. Please try again."
+				if _, err := bot.Send(msg); err != nil {
+					log.Printf("Error sending message: %v", err)
 				}
+				continue
 			}
 
 			if alreadyVisited {
-				mutex.Unlock()
 				msg.Text = fmt.Sprintf("You've already added %s to your list! 🗺️", country)
 				if _, err := bot.Send(msg); err != nil {
 					log.Printf("Error sending message: %v", err)
@@ -449,14 +417,24 @@ func startTelegramBot() {
 				continue
 			}
 
-			// Add country to user's list
-			UserData[userID] = append(UserData[userID], country)
-			mutex.Unlock()
+			if err := repo.Add(userID, country); err != nil {
+				log.Printf("repo.Add failed for user %d / %s: %v", userID, country, err)
+				msg.Text = "Sorry, something went wrong saving that country. Please try again."
+				if _, err := bot.Send(msg); err != nil {
+					log.Printf("Error sending message: %v", err)
+				}
+				continue
+			}
 
 			log.Printf("Adding country %s for user %d", country, userID)
-			saveData()
 
-			msg.Text = fmt.Sprintf("Added %s to your visited countries! 🎉\nYou've now visited %d countries. Use /map to see your progress!", country, len(UserData[userID]))
+			countries, err := repo.List(userID)
+			if err != nil {
+				log.Printf("repo.List failed for user %d: %v", userID, err)
+				countries = nil
+			}
+
+			msg.Text = fmt.Sprintf("Added %s to your visited countries! 🎉\nYou've now visited %d countries. Use /map to see your progress!", country, len(countries))
 			if _, err := bot.Send(msg); err != nil {
 				log.Printf("Error sending message: %v", err)
 			}
@@ -471,11 +449,17 @@ func startTelegramBot() {
 		switch update.Message.Command() {
 		case "map":
 			userID := update.Message.From.ID
-			mutex.Lock()
-			countries, ok := UserData[userID]
-			mutex.Unlock()
+			countries, err := repo.List(userID)
+			if err != nil {
+				log.Printf("repo.List failed for user %d: %v", userID, err)
+				msg.Text = "Sorry, I couldn't load your countries."
+				if _, err := bot.Send(msg); err != nil {
+					log.Printf("Error sending message: %v", err)
+				}
+				continue
+			}
 
-			if !ok || len(countries) == 0 {
+			if len(countries) == 0 {
 				msg.Text = "You haven't added any countries yet. Use the web app to add some!"
 				if _, err := bot.Send(msg); err != nil {
 					log.Printf("Error sending message: %v", err)
@@ -502,11 +486,11 @@ func startTelegramBot() {
 			}
 		case "list":
 			userID := update.Message.From.ID
-			mutex.Lock()
-			countries, ok := UserData[userID]
-			mutex.Unlock()
-
-			if !ok || len(countries) == 0 {
+			countries, err := repo.List(userID)
+			if err != nil {
+				log.Printf("repo.List failed for user %d: %v", userID, err)
+				msg.Text = "Sorry, I couldn't load your countries."
+			} else if len(countries) == 0 {
 				msg.Text = "You haven't added any countries yet. Use the web app to add some!"
 			} else {
 				var countryList strings.Builder
@@ -521,13 +505,10 @@ func startTelegramBot() {
 			}
 		case "suggest":
 			userID := update.Message.From.ID
-			mutex.Lock()
-			countries, ok := UserData[userID]
-			mutex.Unlock()
-
-			var visitedCountries []string
-			if ok {
-				visitedCountries = countries
+			visitedCountries, err := repo.List(userID)
+			if err != nil {
+				log.Printf("repo.List failed for user %d: %v", userID, err)
+				visitedCountries = nil
 			}
 
 			suggestions := GetCountrySuggestions(visitedCountries, 8)

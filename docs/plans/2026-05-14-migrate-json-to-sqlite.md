@@ -96,15 +96,15 @@ Benefits: durable transactional writes (no more re-marshaling the whole map on e
 - Modify: `backend/main.go`
 - Create: `backend/handlers_test.go` (if not adding to existing test file)
 
-- [ ] Remove the global `var UserData map[int64][]string` and `var mutex` from `backend/main.go`
-- [ ] Remove `loadData()` and `saveData()` from `backend/main.go`
-- [ ] Introduce a `type server struct { repo *store.VisitsRepo }` and convert `handleCountries`, `getCountries`, `addCountry`, `deleteCountry` into methods on `*server`
-- [ ] In `main()`, open the DB via `store.Open(dbPath)`, call `store.Migrate(db)`, construct the `server`, and register `srv.handleCountries` on the mux — `dbPath` from env `DB_PATH` with default `backend/data.db`
-- [ ] Update `getCountries` to call `repo.List(userID)`
-- [ ] Update `addCountry` to call `repo.Add(userID, country)` and return 201
-- [ ] Update `deleteCountry` to call `repo.Delete(userID, country)`; return 404 if the bool from Delete is false
-- [ ] Write `backend/handlers_test.go` covering each handler with `httptest.NewRecorder` against an in-memory repo: GET returns `[]` for new user, GET returns recorded countries, POST creates, POST same country twice succeeds (idempotent), DELETE removes, DELETE of missing returns 404, bad userId → 400, missing body → 400
-- [ ] Run `cd backend && go test ./...` — must pass before task 5
+- [x] Remove the global `var UserData map[int64][]string` and `var mutex` from `backend/main.go`
+- [x] Remove `loadData()` and `saveData()` from `backend/main.go`
+- [x] Introduce a `type server struct { repo *store.VisitsRepo }` and convert `handleCountries`, `getCountries`, `addCountry`, `deleteCountry` into methods on `*server`
+- [x] In `main()`, open the DB via `store.Open(dbPath)`, call `store.Migrate(db)`, construct the `server`, and register `srv.handleCountries` on the mux — `dbPath` from env `DB_PATH` with default `backend/data.db`
+- [x] Update `getCountries` to call `repo.List(userID)`
+- [x] Update `addCountry` to call `repo.Add(userID, country)` and return 201
+- [x] Update `deleteCountry` to call `repo.Delete(userID, country)`; return 404 if the bool from Delete is false
+- [x] Write `backend/handlers_test.go` covering each handler with `httptest.NewRecorder` against an in-memory repo: GET returns `[]` for new user, GET returns recorded countries, POST creates, POST same country twice succeeds (idempotent), DELETE removes, DELETE of missing returns 404, bad userId → 400, missing body → 400
+- [x] Run `cd backend && go test ./...` — must pass before task 5
 
 ### Task 5: Refactor the Telegram bot to use the repository
 
