@@ -75,6 +75,21 @@ func (r *VisitsRepo) Delete(userID int64, country string) (bool, error) {
 	return affected > 0, nil
 }
 
+// IsEmpty reports whether the visits table contains zero rows. Used by the
+// JSON auto-importer to decide whether to seed a fresh DB from the legacy
+// data.json file without leaking schema details into the importer.
+func (r *VisitsRepo) IsEmpty() (bool, error) {
+	var one int
+	err := r.db.QueryRow(`SELECT 1 FROM visits LIMIT 1`).Scan(&one)
+	if err == sql.ErrNoRows {
+		return true, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("query visits emptiness: %w", err)
+	}
+	return false, nil
+}
+
 // Has reports whether (userID, country) is already recorded.
 func (r *VisitsRepo) Has(userID int64, country string) (bool, error) {
 	var one int

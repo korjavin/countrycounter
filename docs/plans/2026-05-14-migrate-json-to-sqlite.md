@@ -127,13 +127,13 @@ Benefits: durable transactional writes (no more re-marshaling the whole map on e
 - Create: `backend/migrate_json_test.go`
 - Modify: `backend/main.go` (wire the auto-import into startup)
 
-- [ ] In `backend/migrate_json.go` implement `func MaybeImportJSON(repo *store.VisitsRepo, jsonPath string) (importedRows int, err error)` that: checks if the `visits` table is empty (`SELECT 1 FROM visits LIMIT 1` or a count query); if non-empty, returns (0, nil); if empty, checks whether `jsonPath` exists; if missing, returns (0, nil); if present, reads the file, unmarshals into `map[int64][]string`, iterates and calls `repo.Add` for each (user, country) pair, returns total inserted count
-- [ ] Expose a helper on `*store.VisitsRepo` like `IsEmpty() (bool, error)` to support the auto-detection (keeps the JSON layer agnostic of schema details)
-- [ ] Returns clear error only for *unexpected* failures (corrupt JSON, mid-import DB error). Missing JSON is treated as "nothing to do", not an error — this is the green-field deployment case
-- [ ] In `backend/main.go`, after `store.Open` + `store.Migrate`, call `MaybeImportJSON(repo, "backend/data.json")` (the path used today by `loadData`); log either `Auto-imported N rows from data.json` or `No data.json found or DB already populated — skipping auto-import`
-- [ ] On import error, log a clear message and `log.Fatalf` — refusing to start with partial state is safer than continuing with an unknown DB
-- [ ] Write `backend/migrate_json_test.go` covering: empty DB + valid JSON (3 users / 7 visits) → 7 imported, all queryable via `repo.List`; empty DB + no JSON file → (0, nil) no error; empty DB + empty JSON `{}` → (0, nil); empty DB + malformed JSON → error; populated DB + JSON exists → (0, nil) and existing rows are untouched (i.e. no overwrite, no merge); idempotency: second call after a successful import returns (0, nil)
-- [ ] Run `cd backend && go test ./...` — must pass before task 7
+- [x] In `backend/migrate_json.go` implement `func MaybeImportJSON(repo *store.VisitsRepo, jsonPath string) (importedRows int, err error)` that: checks if the `visits` table is empty (`SELECT 1 FROM visits LIMIT 1` or a count query); if non-empty, returns (0, nil); if empty, checks whether `jsonPath` exists; if missing, returns (0, nil); if present, reads the file, unmarshals into `map[int64][]string`, iterates and calls `repo.Add` for each (user, country) pair, returns total inserted count
+- [x] Expose a helper on `*store.VisitsRepo` like `IsEmpty() (bool, error)` to support the auto-detection (keeps the JSON layer agnostic of schema details)
+- [x] Returns clear error only for *unexpected* failures (corrupt JSON, mid-import DB error). Missing JSON is treated as "nothing to do", not an error — this is the green-field deployment case
+- [x] In `backend/main.go`, after `store.Open` + `store.Migrate`, call `MaybeImportJSON(repo, "backend/data.json")` (the path used today by `loadData`); log either `Auto-imported N rows from data.json` or `No data.json found or DB already populated — skipping auto-import`
+- [x] On import error, log a clear message and `log.Fatalf` — refusing to start with partial state is safer than continuing with an unknown DB
+- [x] Write `backend/migrate_json_test.go` covering: empty DB + valid JSON (3 users / 7 visits) → 7 imported, all queryable via `repo.List`; empty DB + no JSON file → (0, nil) no error; empty DB + empty JSON `{}` → (0, nil); empty DB + malformed JSON → error; populated DB + JSON exists → (0, nil) and existing rows are untouched (i.e. no overwrite, no merge); idempotency: second call after a successful import returns (0, nil)
+- [x] Run `cd backend && go test ./...` — must pass before task 7
 
 ### Task 7: Update deployment & build configuration
 

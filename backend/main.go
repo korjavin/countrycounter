@@ -202,6 +202,21 @@ func main() {
 	}
 
 	repo := store.NewVisitsRepo(db)
+
+	jsonPath := os.Getenv("LEGACY_JSON_PATH")
+	if jsonPath == "" {
+		jsonPath = "backend/data.json"
+	}
+	imported, err := MaybeImportJSON(repo, jsonPath)
+	if err != nil {
+		log.Fatalf("auto-import from %s failed: %v", jsonPath, err)
+	}
+	if imported > 0 {
+		log.Printf("Auto-imported %d rows from %s", imported, jsonPath)
+	} else {
+		log.Printf("No %s found or DB already populated — skipping auto-import", jsonPath)
+	}
+
 	srv := &server{repo: repo}
 
 	go startTelegramBot(repo)
