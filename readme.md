@@ -11,7 +11,7 @@ The application is built with a lightweight Go backend and a pure JavaScript fro
 ## Features
 
 -   **Telegram Integration**: Securely authenticates users via their Telegram account.
--   **Interactive World Map**: Visualizes visited countries with custom colors. The map is zoomable and pannable.
+-   **Monochrome World Map**: Display-only Equal-Earth SVG map (d3-geo + topojson) that fills in your visited countries against a two-color paper / oilcloth backdrop.
 -   **Travel Statistics**: Displays a running count of visited countries.
 -   **Visited Countries List**: A collapsible list to review your visited countries.
 -   **Add Countries Mode**: An intuitive interface to search and add new countries to your list.
@@ -33,7 +33,7 @@ The application is built with a lightweight Go backend and a pure JavaScript fro
 1. Open the Telegram Mini App from your bot
 2. Click the "+" button to enter add mode
 3. Search for countries and click to add them to your list
-4. Your map will update automatically to show visited countries in red
+4. Your map will update automatically to fill visited countries against the two-color (paper / oilcloth) world map
 
 ### Adding Countries via Location (NEW!)
 
@@ -70,9 +70,10 @@ We respect your privacy. Here's a transparent look at the data we collect and ho
 ## Tech Stack
 
 -   **Frontend**:
-    -   Pure JavaScript (ES6+)
-    -   [Leaflet.js](https://leafletjs.com/): An open-source JavaScript library for mobile-friendly interactive maps.
-    -   HTML5 & CSS3
+    -   Pure JavaScript (ES6+) with a monospace, two-color (paper / oilcloth) treatment that matches the [Claude Design](https://api.anthropic.com/v1/design/h/NLFBTX80T4dYFOn0kpkwlw) handoff bundle vendored at `docs/design/`.
+    -   [d3-geo](https://github.com/d3/d3-geo) + [topojson-client](https://github.com/topojson/topojson-client): Equal-Earth SVG world map rendered inline, no tile server.
+    -   [JetBrains Mono](https://www.jetbrains.com/lp/mono/) (variable, self-hosted under `frontend/fonts/`) as the single typeface.
+    -   HTML5 & CSS3 with design tokens in `frontend/css/monospace.css`.
 -   **Backend**:
     -   **Go (Golang)**: For building a simple, efficient, and reliable web server.
     -   **Standard `net/http` package**: For routing and serving files.

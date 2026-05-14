@@ -296,12 +296,21 @@ design URL. Original source:
       autocomplete keyboard Enter)
 
 ### Task 8: [Final] Update documentation
-- [ ] update `readme.md` "Frontend" tech-stack bullet to mention
+- [x] update `readme.md` "Frontend" tech-stack bullet to mention
       d3-geo + topojson and JetBrains Mono (was: Leaflet + sans-serif)
-- [ ] note in `readme.md` that the design is now a monospace,
+      (replaced the Leaflet.js line with d3-geo + topojson-client +
+      JetBrains Mono entries; also corrected the "Interactive World
+      Map" feature bullet to "Monochrome World Map" / display-only and
+      the "How to Use" step that referenced "visited countries in red")
+- [x] note in `readme.md` that the design is now a monospace,
       two-color treatment matching the design bundle
-- [ ] (optional) refresh `logo.png` reference / screenshot if the
+      (added to the Frontend bullet: "a monospace, two-color (paper /
+      oilcloth) treatment that matches the Claude Design handoff
+      bundle vendored at `docs/design/`")
+- [x] (optional) refresh `logo.png` reference / screenshot if the
       old screenshot is now stale
+      (skipped - optional, and screenshot refresh is a manual visual
+      task tracked under Post-Completion)
 
 ## Technical Details
 
