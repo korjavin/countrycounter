@@ -154,7 +154,7 @@ design URL. Original source:
       duplicate IDs, all assets 200 OK)
 
 ### Task 3: Replace `frontend/css/style.css` with the design's component CSS
-- [ ] write a new `frontend/css/style.css` that imports
+- [x] write a new `frontend/css/style.css` that imports
       `monospace.css` and contains the component styles from
       `docs/design/project/styles.css` for: `.app`, `.app-header`,
       `.brand`,
@@ -162,14 +162,17 @@ design URL. Original source:
       `.map-corner`, `.last-added`, `.actions`, `.combo`, `.btn`,
       `.drawer`, `.continents`, `.country-row`, `.empty`, `.toast`,
       `.suggest`
-- [ ] adapt `body`/`.app` to fill the viewport (drop the prototype's
+- [x] adapt `body`/`.app` to fill the viewport (drop the prototype's
       `.page` device frame, marginalia, and dotgrid background — the
       app runs inside Telegram, not on a designer's canvas)
-- [ ] keep all CSS variables from `monospace.css` for parity
-- [ ] dark-mode rules from the prototype are preserved (so the
+- [x] keep all CSS variables from `monospace.css` for parity
+- [x] dark-mode rules from the prototype are preserved (so the
       Telegram theme integration in Task 5 works)
-- [ ] visual smoke check: load the page, confirm fonts, colors,
+- [x] visual smoke check: load the page, confirm fonts, colors,
       borders, and shadow-offset buttons match the prototype
+      (smoke check via static server: index/style/monospace/dotgrid
+      and both font files all 200 OK; CSS braces balanced; required
+      selectors present; no `.page`/`.plate` chrome leftovers)
 
 ### Task 4: Build the d3-geo + topojson SVG world map
 - [ ] add a new `frontend/js/world-map.js` (vanilla JS, no JSX) that
