@@ -238,12 +238,22 @@ design URL. Original source:
       test runs)
 
 ### Task 6: Server static-file sanity + final polish
-- [ ] confirm `backend/main.go` still serves the new asset paths
+- [x] confirm `backend/main.go` still serves the new asset paths
       (`/css/monospace.css`, `/fonts/JetBrainsMono-400.woff2`,
       `/js/world-map.js`) — no code change expected, just a curl
       check on each
-- [ ] regression: run Go unit tests (`go test ./...`) — must pass
-- [ ] regression: re-run full Playwright e2e — must pass
+      (all served by `http.FileServer(http.Dir("./frontend"))` at
+      `backend/main.go:244-246`; curl against a local instance on
+      PORT=18082 returned HTTP 200 for `/css/monospace.css`,
+      `/css/style.css`, `/css/dotgrid-bg.svg`,
+      `/fonts/JetBrainsMono-400.woff2`,
+      `/fonts/JetBrainsMono-400italic.woff2`, `/js/world-map.js`,
+      `/js/app.js`, `/`, and `/all_countries.json`)
+- [x] regression: run Go unit tests (`go test ./...`) — must pass
+      (both `github.com/korjavin/countrycounter/backend` and
+      `.../backend/store` packages pass)
+- [x] regression: re-run full Playwright e2e — must pass
+      (7/7 passed against the local server)
 
 ### Task 7: Verify acceptance criteria
 - [ ] visual diff vs. prototype: header brand, hero stat, progress
