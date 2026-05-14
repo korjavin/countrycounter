@@ -3,46 +3,114 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Country Counter</title>
-        <link
-            rel="stylesheet"
-            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-            integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-            crossorigin=""
-        />
+        <title>countrycounter — monospace</title>
+        <link rel="stylesheet" href="css/monospace.css" />
         <link rel="stylesheet" href="css/style.css" />
+
+        <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+        <script src="https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
     </head>
     <body>
-        <div id="map"></div>
+        <div class="app" data-screen-label="Country Counter">
+            <div class="app-header">
+                <div class="brand">
+                    <span class="bracket">[</span>countrycounter<span class="bracket">]</span>
+                </div>
+                <div class="meta">
+                    <span class="meta-version">v0.4</span>
+                    <span>· LIVE</span>
+                </div>
+            </div>
 
-        <div class="stats-container">
-            <h2>Visited Countries: <span id="visited-count">0</span></h2>
-            <button id="toggle-list-btn">Show List</button>
+            <div class="qa">
+                <button id="add-focus-btn" type="button" title="Add country">
+                    <span class="glyph">+</span>
+                    <span>add</span>
+                </button>
+                <button id="toggle-list-btn" type="button" title="Toggle list">
+                    <span class="glyph">▮</span>
+                    <span class="qa-label">hide list</span>
+                </button>
+                <button id="sort-cycle-btn" type="button" title="Sort">
+                    <span class="glyph">↓</span>
+                    <span class="qa-label">sort: recent</span>
+                </button>
+                <button id="share-btn" type="button" title="Export to clipboard">
+                    <span class="glyph">↗</span>
+                    <span>share</span>
+                </button>
+            </div>
+
+            <div class="hero">
+                <div class="hero-marker">§ STATUS · 01</div>
+                <div class="row">
+                    <span id="visited-count" class="big t-num">00</span>
+                    <span class="slash">/</span>
+                    <span id="visited-denom" class="denom t-num">195</span>
+                </div>
+                <div class="caption">
+                    <span id="visited-pct" class="strong">0%</span> OF EARTH ·
+                    <span id="visited-remaining">195 remaining</span>
+                </div>
+                <div id="progress-cells" class="progress" aria-label="0% complete"></div>
+            </div>
+
+            <div class="map-wrap" style="height: 252px;">
+                <svg id="world" class="world" viewBox="0 0 800 460" preserveAspectRatio="xMidYMid meet"></svg>
+                <div class="map-corner tl">EQUAL EARTH · 1:155M</div>
+                <div id="map-corner-tr" class="map-corner tr">0/195 · 0%</div>
+                <div id="last-added" class="last-added" hidden>
+                    <span class="arrow">→</span><span id="last-added-text">LAST · </span>
+                </div>
+            </div>
+
+            <div class="actions">
+                <div class="combo">
+                    <div id="suggest" class="suggest" hidden></div>
+                    <span class="prefix">›</span>
+                    <input
+                        id="country-input"
+                        type="text"
+                        class="with-prefix"
+                        placeholder="search country..."
+                        spellcheck="false"
+                        autocomplete="off"
+                    />
+                    <button id="clear-query-btn" class="clear" type="button" aria-label="Clear" hidden>×</button>
+                </div>
+                <button id="add-country-btn" class="btn primary" type="button" disabled>
+                    + Add
+                </button>
+            </div>
+
+            <div id="drawer" class="drawer">
+                <div id="continents" class="continents"></div>
+
+                <div class="drawer-head">
+                    <div class="title">§ VISITED</div>
+                    <div id="drawer-count" class="count">0 ENTRIES · SORT: RECENT</div>
+                </div>
+
+                <div class="row-toolbar">
+                    <div id="sort-seg" class="seg">
+                        <button type="button" data-sort="recent" class="on">recent</button>
+                        <button type="button" data-sort="alpha">A&ndash;Z</button>
+                        <button type="button" data-sort="continent">region</button>
+                    </div>
+                    <div class="row-toolbar-spacer"></div>
+                    <button id="clear-all-btn" class="btn ghost row-toolbar-clear" type="button" hidden>clear</button>
+                </div>
+
+                <div id="countries-ul"></div>
+            </div>
+
+            <div id="toast" class="toast" hidden>
+                <span id="toast-glyph" class="glyph">✓</span>
+                <span id="toast-text"></span>
+            </div>
         </div>
 
-        <div id="visited-list" class="hidden">
-            <h3>Visited Countries:</h3>
-            <ul id="countries-ul"></ul>
-        </div>
-
-        <div class="add-country-container">
-            <input
-                type="text"
-                id="country-input"
-                list="country-list"
-                placeholder="Select a country"
-            />
-            <datalist id="country-list"></datalist>
-            <button id="add-country-btn">Add Country</button>
-        </div>
-
-        <script
-            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-            crossorigin=""
-        ></script>
         <script src="https://telegram.org/js/telegram-web-app.js"></script>
         <script src="js/app.js"></script>
-        <div id="status-bar"></div>
     </body>
 </html>

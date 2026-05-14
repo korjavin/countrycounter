@@ -134,22 +134,24 @@ design URL. Original source:
 - [x] no behavior change in this task; smoke check only
 
 ### Task 2: Rewrite `frontend/index.html` to the design DOM
-- [ ] replace the body with the new structure: `app-header` (brand +
+- [x] replace the body with the new structure: `app-header` (brand +
       meta), `qa` quick-actions strip, `hero` (stat row + caption +
       progress cells), `map-wrap` (with `<svg id="world">` and corner
       labels), `actions` (combo input + suggest dropdown + primary
       add button), `drawer` (continents, drawer-head, row-toolbar,
       visited list)
-- [ ] keep the IDs the e2e tests will rely on
+- [x] keep the IDs the e2e tests will rely on
       (`#visited-count`, `#countries-ul`, `#country-input`,
       `#add-country-btn`, `#toggle-list-btn`)
-- [ ] swap the Leaflet `<link>` and `<script>` tags for d3 v7 +
+- [x] swap the Leaflet `<link>` and `<script>` tags for d3 v7 +
       topojson-client UMD bundles (matches the prototype, served from
       jsdelivr/unpkg)
-- [ ] include `css/monospace.css` before `css/style.css`
-- [ ] keep `telegram-web-app.js` and the `js/app.js` script tags
-- [ ] confirm DOM renders without error in the browser (layout will
+- [x] include `css/monospace.css` before `css/style.css`
+- [x] keep `telegram-web-app.js` and the `js/app.js` script tags
+- [x] confirm DOM renders without error in the browser (layout will
       be unstyled until Task 3); no e2e change yet
+      (smoke check via static server: required IDs present, no
+      duplicate IDs, all assets 200 OK)
 
 ### Task 3: Replace `frontend/css/style.css` with the design's component CSS
 - [ ] write a new `frontend/css/style.css` that imports
