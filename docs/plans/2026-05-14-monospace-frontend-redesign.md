@@ -119,18 +119,19 @@ design URL. Original source:
 ## Implementation Steps
 
 ### Task 1: Bring design assets into the frontend
-- [ ] copy `docs/design/project/fonts/JetBrainsMono-400.woff2` and
+- [x] copy `docs/design/project/fonts/JetBrainsMono-400.woff2` and
       `JetBrainsMono-400italic.woff2` into `frontend/fonts/`
-- [ ] copy `docs/design/project/lib/dotgrid-bg.svg` into
+- [x] copy `docs/design/project/lib/dotgrid-bg.svg` into
       `frontend/css/dotgrid-bg.svg`
-- [ ] create `frontend/css/monospace.css` with the design-token
+- [x] create `frontend/css/monospace.css` with the design-token
       `:root` block (colors, type scale, spacing, motion) and dark
       `:root[data-theme="dark"]` overrides — copied verbatim from
       `docs/design/project/lib/monospace.css`, minus the typography
       utilities we do not use
-- [ ] verify in a browser that fonts load (no 404 in devtools network
+- [x] verify in a browser that fonts load (no 404 in devtools network
       panel) — the page still works with the old layout
-- [ ] no behavior change in this task; smoke check only
+      (smoke check via static server: all four assets + index 200 OK)
+- [x] no behavior change in this task; smoke check only
 
 ### Task 2: Rewrite `frontend/index.html` to the design DOM
 - [ ] replace the body with the new structure: `app-header` (brand +
