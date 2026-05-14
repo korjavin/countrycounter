@@ -69,12 +69,12 @@ Benefits: durable transactional writes (no more re-marshaling the whole map on e
 - Create: `backend/store/migrations/001_init.sql`
 - Modify: `backend/store/db.go` (add `Migrate` function and embed FS)
 
-- [ ] Create `backend/store/migrations/001_init.sql` with:
+- [x] Create `backend/store/migrations/001_init.sql` with:
   - `-- +goose Up`: `CREATE TABLE visits (user_id INTEGER NOT NULL, country_name TEXT NOT NULL, added_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (user_id, country_name));` plus `CREATE INDEX idx_visits_user_id ON visits(user_id);`
   - `-- +goose Down`: `DROP INDEX idx_visits_user_id; DROP TABLE visits;`
-- [ ] In `backend/store/db.go` add `//go:embed migrations/*.sql` declaring `embedMigrations embed.FS` and a `Migrate(db *sql.DB) error` that calls `goose.SetBaseFS(embedMigrations)`, `goose.SetDialect("sqlite3")`, and `goose.Up(db, "migrations")`
-- [ ] Write `backend/store/migrate_test.go` covering: running Migrate on a fresh in-memory DB succeeds; the `visits` table exists afterward (query `sqlite_master`); calling Migrate twice is idempotent
-- [ ] Run `cd backend && go test ./...` — must pass before task 3
+- [x] In `backend/store/db.go` add `//go:embed migrations/*.sql` declaring `embedMigrations embed.FS` and a `Migrate(db *sql.DB) error` that calls `goose.SetBaseFS(embedMigrations)`, `goose.SetDialect("sqlite3")`, and `goose.Up(db, "migrations")`
+- [x] Write `backend/store/migrate_test.go` covering: running Migrate on a fresh in-memory DB succeeds; the `visits` table exists afterward (query `sqlite_master`); calling Migrate twice is idempotent
+- [x] Run `cd backend && go test ./...` — must pass before task 3
 
 ### Task 3: Implement the visits repository
 

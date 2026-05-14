@@ -7,10 +7,15 @@ package store
 
 import (
 	"database/sql"
+	"embed"
 	"fmt"
 
+	"github.com/pressly/goose/v3"
 	_ "modernc.org/sqlite"
 )
+
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
 
 // Open opens a SQLite database at the given path with the project's standard
 // pragmas (WAL journal, 5s busy_timeout) and MaxOpenConns=1.
@@ -38,4 +43,20 @@ func Open(path string) (*sql.DB, error) {
 	db.SetMaxOpenConns(1)
 
 	return db, nil
+}
+
+// Migrate runs the embedded goose migrations against db. Calling Migrate more
+// than once is safe — goose tracks applied versions in goose_db_version and
+// only runs pending migrations.
+func Migrate(db *sql.DB) error {
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		return fmt.Errorf("set goose dialect: %w", err)
+	}
+	goose.SetBaseFS(embedMigrations)
+	goose.SetLogger(goose.NopLogger())
+
+	if err := goose.Up(db, "migrations"); err != nil {
+		return fmt.Errorf("goose up: %w", err)
+	}
+	return nil
 }
