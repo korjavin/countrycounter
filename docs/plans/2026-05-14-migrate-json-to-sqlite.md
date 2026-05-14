@@ -57,11 +57,11 @@ Benefits: durable transactional writes (no more re-marshaling the whole map on e
 - Modify: `backend/go.mod`, `backend/go.sum`
 - Create: `backend/store/db.go`
 
-- [ ] Add `modernc.org/sqlite` and `github.com/pressly/goose/v3` via `go get` in `backend/`
-- [ ] Create `backend/store/db.go` with an `Open(path string) (*sql.DB, error)` that: opens `sqlite` driver, pings, runs `PRAGMA journal_mode=WAL`, `PRAGMA busy_timeout = 5000`, and `db.SetMaxOpenConns(1)` — mirroring `medicationtrackerbot/internal/store/db/db.go`
-- [ ] Add a blank import `_ "modernc.org/sqlite"` in `backend/store/db.go`
-- [ ] Write `backend/store/db_test.go` covering: Open succeeds for `:memory:`; Open returns error for an unwritable path; the returned DB responds to Ping
-- [ ] Run `cd backend && go test ./...` — must pass before task 2
+- [x] Add `modernc.org/sqlite` and `github.com/pressly/goose/v3` via `go get` in `backend/`
+- [x] Create `backend/store/db.go` with an `Open(path string) (*sql.DB, error)` that: opens `sqlite` driver, pings, runs `PRAGMA journal_mode=WAL`, `PRAGMA busy_timeout = 5000`, and `db.SetMaxOpenConns(1)` — mirroring `medicationtrackerbot/internal/store/db/db.go`
+- [x] Add a blank import `_ "modernc.org/sqlite"` in `backend/store/db.go`
+- [x] Write `backend/store/db_test.go` covering: Open succeeds for `:memory:`; Open returns error for an unwritable path; the returned DB responds to Ping
+- [x] Run `cd backend && go test ./...` — must pass before task 2
 
 ### Task 2: Add initial migration for the visits table
 
