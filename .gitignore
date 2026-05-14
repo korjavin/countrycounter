@@ -5,3 +5,7 @@ test-results/
 backend/backend
 backend/backend
 .DS_Store
+backend/data.json
+backend/data.db
+backend/data.db-wal
+backend/data.db-shm

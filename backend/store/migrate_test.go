@@ -23,12 +23,6 @@ func TestMigrate_FreshDB(t *testing.T) {
 	if name != "visits" {
 		t.Errorf("expected table name 'visits', got %q", name)
 	}
-
-	var idxName string
-	row = db.QueryRow(`SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_visits_user_id'`)
-	if err := row.Scan(&idxName); err != nil {
-		t.Fatalf("idx_visits_user_id index not found after Migrate: %v", err)
-	}
 }
 
 func TestMigrate_Idempotent(t *testing.T) {

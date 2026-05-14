@@ -203,18 +203,23 @@ func main() {
 
 	repo := store.NewVisitsRepo(db)
 
-	jsonPath := os.Getenv("LEGACY_JSON_PATH")
-	if jsonPath == "" {
-		jsonPath = "backend/data.json"
-	}
+	const jsonPath = "backend/data.json"
 	imported, err := MaybeImportJSON(repo, jsonPath)
 	if err != nil {
 		log.Fatalf("auto-import from %s failed: %v", jsonPath, err)
 	}
-	if imported > 0 {
+	switch {
+	case imported > 0:
 		log.Printf("Auto-imported %d rows from %s", imported, jsonPath)
-	} else {
-		log.Printf("No %s found or DB already populated — skipping auto-import", jsonPath)
+	default:
+		// MaybeImportJSON returned 0 for one of two reasons; check which so
+		// operators can distinguish "DB already had data" from "no JSON file
+		// to import."
+		if _, statErr := os.Stat(jsonPath); statErr == nil {
+			log.Printf("DB already populated, ignoring %s", jsonPath)
+		} else {
+			log.Printf("No %s found, starting with current DB state", jsonPath)
+		}
 	}
 
 	srv := &server{repo: repo}
@@ -429,6 +434,9 @@ func startTelegramBot(repo *store.VisitsRepo) {
 
 	for update := range updates {
 		if update.Message == nil { // ignore any non-Message updates
+			continue
+		}
+		if update.Message.From == nil { // channel posts and similar — skip
 			continue
 		}
 

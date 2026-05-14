@@ -7,7 +7,8 @@ import (
 
 // VisitsRepo is the storage layer for the visits table. It owns no state of
 // its own beyond the shared *sql.DB; multiple goroutines may call its methods
-// concurrently (serialization happens at the SQL layer via MaxOpenConns=1).
+// concurrently — Open caps the connection pool at 1, so all reads and writes
+// serialize through the same SQLite connection.
 type VisitsRepo struct {
 	db *sql.DB
 }
@@ -73,6 +74,40 @@ func (r *VisitsRepo) Delete(userID int64, country string) (bool, error) {
 		return false, fmt.Errorf("rows affected: %w", err)
 	}
 	return affected > 0, nil
+}
+
+// ImportPairs inserts every (userID, country) pair in data within a single
+// transaction. If any insert fails the transaction is rolled back so the
+// table is left in its prior state, letting the caller safely retry on the
+// next start. Returns the number of pairs processed (counting duplicates,
+// which become no-ops because of INSERT OR IGNORE).
+func (r *VisitsRepo) ImportPairs(data map[int64][]string) (int, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return 0, fmt.Errorf("begin import tx: %w", err)
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.Prepare(`INSERT OR IGNORE INTO visits (user_id, country_name) VALUES (?, ?)`)
+	if err != nil {
+		return 0, fmt.Errorf("prepare import insert: %w", err)
+	}
+	defer stmt.Close()
+
+	imported := 0
+	for userID, countries := range data {
+		for _, country := range countries {
+			if _, err := stmt.Exec(userID, country); err != nil {
+				return 0, fmt.Errorf("import (user %d, country %q): %w", userID, country, err)
+			}
+			imported++
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("commit import tx: %w", err)
+	}
+	return imported, nil
 }
 
 // IsEmpty reports whether the visits table contains zero rows. Used by the

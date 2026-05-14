@@ -1,8 +1,10 @@
 // Package store owns the shared SQLite connection and the visits repository.
 //
 // Open is called once at startup; the resulting *sql.DB is then passed to the
-// repository constructors and to Migrate. MaxOpenConns is set to 1 so the
-// single WAL writer never contends with itself.
+// repository constructors and to Migrate. MaxOpenConns is capped at 1 so all
+// reads and writes serialize through a single connection — combined with WAL
+// mode and the 5s busy_timeout this matches the medicationtrackerbot pattern
+// and removes the need for application-level locking.
 package store
 
 import (

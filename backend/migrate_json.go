@@ -17,9 +17,10 @@ import (
 //   - If the visits table is non-empty, this is a no-op and returns (0, nil).
 //   - If jsonPath does not exist, this is a no-op and returns (0, nil) —
 //     a green-field deployment is not an error.
-//   - If the file exists but is malformed, or if a repo write fails mid-import,
-//     the error is returned so the caller can refuse to start with partial
-//     state.
+//   - If the file exists but is malformed, or if the import write fails,
+//     the error is returned and the table is left empty (the import runs
+//     inside a single transaction that rolls back on failure), so the next
+//     start can safely retry once the underlying problem is fixed.
 //
 // The importer is intentionally a one-shot: once any row exists, subsequent
 // calls short-circuit without touching the file system.
@@ -45,14 +46,5 @@ func MaybeImportJSON(repo *store.VisitsRepo, jsonPath string) (int, error) {
 		return 0, fmt.Errorf("parse %s: %w", jsonPath, err)
 	}
 
-	imported := 0
-	for userID, countries := range data {
-		for _, country := range countries {
-			if err := repo.Add(userID, country); err != nil {
-				return imported, fmt.Errorf("import (user %d, country %q): %w", userID, country, err)
-			}
-			imported++
-		}
-	}
-	return imported, nil
+	return repo.ImportPairs(data)
 }
