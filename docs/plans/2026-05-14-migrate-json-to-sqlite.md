@@ -82,13 +82,13 @@ Benefits: durable transactional writes (no more re-marshaling the whole map on e
 - Create: `backend/store/visits.go`
 - Create: `backend/store/visits_test.go`
 
-- [ ] Define `type VisitsRepo struct { db *sql.DB }` and `func NewVisitsRepo(db *sql.DB) *VisitsRepo`
-- [ ] Implement `List(userID int64) ([]string, error)` — `SELECT country_name FROM visits WHERE user_id = ? ORDER BY added_at` — returns empty slice (not nil) when no rows
-- [ ] Implement `Add(userID int64, country string) error` — `INSERT OR IGNORE INTO visits (user_id, country_name) VALUES (?, ?)` — idempotent (matches current "already visited" UX in the bot)
-- [ ] Implement `Delete(userID int64, country string) (bool, error)` — `DELETE FROM visits WHERE user_id = ? AND country_name = ?`; return `true` if a row was deleted via `RowsAffected`
-- [ ] Implement `Has(userID int64, country string) (bool, error)` — `SELECT 1 FROM visits WHERE user_id = ? AND country_name = ? LIMIT 1`
-- [ ] Write table-driven tests for each method using a per-test in-memory DB + Migrate; cover empty user, multiple countries, duplicate Add (no-op), Delete of missing row (returns false), unicode country names
-- [ ] Run `cd backend && go test ./...` — must pass before task 4
+- [x] Define `type VisitsRepo struct { db *sql.DB }` and `func NewVisitsRepo(db *sql.DB) *VisitsRepo`
+- [x] Implement `List(userID int64) ([]string, error)` — `SELECT country_name FROM visits WHERE user_id = ? ORDER BY added_at` — returns empty slice (not nil) when no rows
+- [x] Implement `Add(userID int64, country string) error` — `INSERT OR IGNORE INTO visits (user_id, country_name) VALUES (?, ?)` — idempotent (matches current "already visited" UX in the bot)
+- [x] Implement `Delete(userID int64, country string) (bool, error)` — `DELETE FROM visits WHERE user_id = ? AND country_name = ?`; return `true` if a row was deleted via `RowsAffected`
+- [x] Implement `Has(userID int64, country string) (bool, error)` — `SELECT 1 FROM visits WHERE user_id = ? AND country_name = ? LIMIT 1`
+- [x] Write table-driven tests for each method using a per-test in-memory DB + Migrate; cover empty user, multiple countries, duplicate Add (no-op), Delete of missing row (returns false), unicode country names
+- [x] Run `cd backend && go test ./...` — must pass before task 4
 
 ### Task 4: Refactor HTTP handlers to use the repository
 
