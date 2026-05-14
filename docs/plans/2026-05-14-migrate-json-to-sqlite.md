@@ -111,14 +111,14 @@ Benefits: durable transactional writes (no more re-marshaling the whole map on e
 **Files:**
 - Modify: `backend/main.go` (the `startTelegramBot` function)
 
-- [ ] Change `startTelegramBot` to accept `*store.VisitsRepo` (or move it onto `*server`) and call it from `main` accordingly
-- [ ] Replace the location-handler block (currently `mutex.Lock` + map read + `UserData[userID] = append(...)` + `saveData()`) with `repo.Has(...)` → `repo.Add(...)` → `repo.List(...)` to recompute the count for the reply
-- [ ] Replace `/map` handler's `UserData[userID]` read with `repo.List(userID)`
-- [ ] Replace `/list` handler's `UserData[userID]` read with `repo.List(userID)`
-- [ ] Replace `/suggest` handler's `UserData[userID]` read with `repo.List(userID)`
-- [ ] Extract a small helper (e.g. `handleLocation(repo, userID, lat, lng) (replyText string, err error)`) so the location flow is unit-testable without a real Telegram client
-- [ ] Write tests for `handleLocation` covering: new country added → reply mentions count; same country twice → "already added" path; geocoding failure → error reply
-- [ ] Run `cd backend && go test ./...` — must pass before task 6
+- [x] Change `startTelegramBot` to accept `*store.VisitsRepo` (or move it onto `*server`) and call it from `main` accordingly
+- [x] Replace the location-handler block (currently `mutex.Lock` + map read + `UserData[userID] = append(...)` + `saveData()`) with `repo.Has(...)` → `repo.Add(...)` → `repo.List(...)` to recompute the count for the reply
+- [x] Replace `/map` handler's `UserData[userID]` read with `repo.List(userID)`
+- [x] Replace `/list` handler's `UserData[userID]` read with `repo.List(userID)`
+- [x] Replace `/suggest` handler's `UserData[userID]` read with `repo.List(userID)`
+- [x] Extract a small helper (e.g. `handleLocation(repo, userID, lat, lng) (replyText string, err error)`) so the location flow is unit-testable without a real Telegram client
+- [x] Write tests for `handleLocation` covering: new country added → reply mentions count; same country twice → "already added" path; geocoding failure → error reply
+- [x] Run `cd backend && go test ./...` — must pass before task 6
 
 ### Task 6: Auto-import data.json on first startup
 

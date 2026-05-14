@@ -353,6 +353,44 @@ func getCountryFromLocation(latitude, longitude float64) (string, error) {
 	return countryName, nil
 }
 
+// geocodeLocation is the package-level seam that handleLocation uses to look up
+// the country for a (lat, lng). Tests override it to avoid hitting the real
+// reverse-geocoder.
+var geocodeLocation = getCountryFromLocation
+
+// handleLocation runs the bot's location flow: geocode → check duplicate → add
+// → recompute count for the reply. The returned reply text is always
+// non-empty and is what the bot should send back to the user. The error is
+// non-nil only for unexpected infrastructure failures and is intended for
+// logging — the user-facing reply already explains the situation.
+func handleLocation(repo *store.VisitsRepo, userID int64, lat, lng float64) (string, error) {
+	country, err := geocodeLocation(lat, lng)
+	if err != nil {
+		return "Sorry, I couldn't determine the country from that location. Please make sure you're sharing a location within a country's borders.", err
+	}
+
+	alreadyVisited, err := repo.Has(userID, country)
+	if err != nil {
+		return "Sorry, something went wrong saving that country. Please try again.", fmt.Errorf("repo.Has: %w", err)
+	}
+	if alreadyVisited {
+		return fmt.Sprintf("You've already added %s to your list! 🗺️", country), nil
+	}
+
+	if err := repo.Add(userID, country); err != nil {
+		return "Sorry, something went wrong saving that country. Please try again.", fmt.Errorf("repo.Add: %w", err)
+	}
+
+	countries, err := repo.List(userID)
+	if err != nil {
+		// The country was added; only the count lookup failed. Send a
+		// success reply without the count rather than a misleading error.
+		return fmt.Sprintf("Added %s to your visited countries! 🎉", country), fmt.Errorf("repo.List: %w", err)
+	}
+
+	return fmt.Sprintf("Added %s to your visited countries! 🎉\nYou've now visited %d countries. Use /map to see your progress!", country, len(countries)), nil
+}
+
 func startTelegramBot(repo *store.VisitsRepo) {
 	token := os.Getenv("TELEGRAM_BOT_TOKEN")
 	if token == "" {
@@ -389,52 +427,11 @@ func startTelegramBot(repo *store.VisitsRepo) {
 
 			log.Printf("Received location from user %d: lat=%f, lng=%f", userID, lat, lng)
 
-			country, err := getCountryFromLocation(lat, lng)
+			reply, err := handleLocation(repo, userID, lat, lng)
 			if err != nil {
-				log.Printf("Error geocoding location: %v", err)
-				msg.Text = "Sorry, I couldn't determine the country from that location. Please make sure you're sharing a location within a country's borders."
-				if _, err := bot.Send(msg); err != nil {
-					log.Printf("Error sending message: %v", err)
-				}
-				continue
+				log.Printf("handleLocation failed for user %d: %v", userID, err)
 			}
-
-			alreadyVisited, err := repo.Has(userID, country)
-			if err != nil {
-				log.Printf("repo.Has failed for user %d / %s: %v", userID, country, err)
-				msg.Text = "Sorry, something went wrong saving that country. Please try again."
-				if _, err := bot.Send(msg); err != nil {
-					log.Printf("Error sending message: %v", err)
-				}
-				continue
-			}
-
-			if alreadyVisited {
-				msg.Text = fmt.Sprintf("You've already added %s to your list! 🗺️", country)
-				if _, err := bot.Send(msg); err != nil {
-					log.Printf("Error sending message: %v", err)
-				}
-				continue
-			}
-
-			if err := repo.Add(userID, country); err != nil {
-				log.Printf("repo.Add failed for user %d / %s: %v", userID, country, err)
-				msg.Text = "Sorry, something went wrong saving that country. Please try again."
-				if _, err := bot.Send(msg); err != nil {
-					log.Printf("Error sending message: %v", err)
-				}
-				continue
-			}
-
-			log.Printf("Adding country %s for user %d", country, userID)
-
-			countries, err := repo.List(userID)
-			if err != nil {
-				log.Printf("repo.List failed for user %d: %v", userID, err)
-				countries = nil
-			}
-
-			msg.Text = fmt.Sprintf("Added %s to your visited countries! 🎉\nYou've now visited %d countries. Use /map to see your progress!", country, len(countries))
+			msg.Text = reply
 			if _, err := bot.Send(msg); err != nil {
 				log.Printf("Error sending message: %v", err)
 			}
