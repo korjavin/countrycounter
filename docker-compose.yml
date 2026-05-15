@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   countrycounter:
-    image: ghcr.io/korjavin/countrycounter:latest
+    image: ghcr.io/korjavin/countrycounter:2d7c833b42d006dda9db86bf9e2ca80009e80577
     container_name: countrycounter
     volumes:
       - cc-data:/app/backend
