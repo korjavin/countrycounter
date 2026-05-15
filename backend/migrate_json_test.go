@@ -176,6 +176,43 @@ func TestMaybeImportJSON_DuplicatesInJSON_CountsActualInserts(t *testing.T) {
 	}
 }
 
+// TestMaybeImportJSON_NormalizesLegacyNames verifies that a fresh DB seeded
+// from a legacy data.json with pre-rename names ("Cape Verde", "Palestine")
+// ends up with the canonical names migration 002 would have produced. Without
+// this, those rows would land in the DB after migrations ran and the frontend
+// duplicate check (raw string compare) could not catch them.
+func TestMaybeImportJSON_NormalizesLegacyNames(t *testing.T) {
+	repo := newImporterRepo(t)
+
+	const payload = `{
+		"1": ["Cape Verde", "Germany"],
+		"2": ["Palestine"],
+		"3": ["Cabo Verde", "Cape Verde"]
+	}`
+	path := writeJSON(t, payload)
+
+	if _, err := MaybeImportJSON(repo, path); err != nil {
+		t.Fatalf("MaybeImportJSON: %v", err)
+	}
+
+	cases := map[int64][]string{
+		1: {"Cabo Verde", "Germany"},
+		2: {"Palestine State"},
+		3: {"Cabo Verde"},
+	}
+	for uid, want := range cases {
+		got, err := repo.List(uid)
+		if err != nil {
+			t.Fatalf("List(%d): %v", uid, err)
+		}
+		sort.Strings(got)
+		sort.Strings(want)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("List(%d) = %v, want %v", uid, got, want)
+		}
+	}
+}
+
 func TestMaybeImportJSON_IdempotentSecondCall(t *testing.T) {
 	repo := newImporterRepo(t)
 	path := writeJSON(t, `{"1": ["Germany", "France"]}`)
