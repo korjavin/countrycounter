@@ -17,12 +17,16 @@ test.describe('Country Counter App', () => {
       };
     }, userId);
     await page.goto(appUrl);
-    // Wait until app has initialised (hero count rendered as 2-digit string).
+    // Wait until app has initialised: both loadAllCountries() and loadVisited()
+    // have completed and render() has run. state.ready is set last in init().
+    // Gating on allCountries alone races loadVisited — a click between the two
+    // awaits would have its push to state.visited clobbered by the still-in-
+    // flight loadVisited.
     await page.waitForFunction(
-      () => {
-        const el = document.getElementById('visited-count');
-        return el && /^\d{2,}$/.test(el.textContent || '');
-      },
+      () =>
+        window.__app &&
+        window.__app.state &&
+        window.__app.state.ready === true,
     );
   }
 
@@ -39,11 +43,20 @@ test.describe('Country Counter App', () => {
   test('world map renders visited paths matching seeded set', async ({ page }) => {
     await page.goto(appUrl);
 
+    // Wait for libraries AND the app's own initial map render to complete
+    // before seeding. The app calls WorldMap.render() once during init; that
+    // call is async and (because pathsCache is shared) would otherwise resolve
+    // after our seeded render and clear the .visited paths. Once
+    // svg.world path.country elements exist, the initial render is done and
+    // it's safe to overlay our seeded set.
     await page.waitForFunction(
       () =>
         typeof window.WorldMap !== 'undefined' &&
         typeof window.d3 !== 'undefined' &&
-        typeof window.topojson !== 'undefined',
+        typeof window.topojson !== 'undefined' &&
+        document.querySelectorAll('svg.world path.country').length > 0,
+      null,
+      { timeout: 10000 },
     );
 
     const seeded = ['United States', 'France', 'Japan'];
@@ -55,13 +68,6 @@ test.describe('Country Counter App', () => {
         style: 'solid',
       });
     }, seeded);
-
-    await expect
-      .poll(
-        async () => await page.locator('svg.world path.country').count(),
-        { timeout: 10000 },
-      )
-      .toBeGreaterThan(0);
 
     const visitedCount = await page
       .locator('svg.world path.country.visited')

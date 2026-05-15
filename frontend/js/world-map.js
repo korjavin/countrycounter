@@ -6,30 +6,27 @@
   const WORLD_ATLAS_URL =
     "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json";
 
+  // Values match country names in world-atlas@2.0.2 countries-110m.json
+  // (Natural Earth display names). Keys are names that may show up in user
+  // data — from the autocomplete in all_countries.json or legacy entries.
   const NAME_ALIASES = {
     "United States": "United States of America",
-    "Czechia": "Czech Republic",
-    "Czech Republic": "Czech Republic",
-    "Cabo Verde": "Cape Verde",
-    "Cote d'Ivoire": "Ivory Coast",
-    "Côte d'Ivoire": "Ivory Coast",
-    "Congo, Democratic Republic of the": "Democratic Republic of the Congo",
-    "DR Congo": "Democratic Republic of the Congo",
-    "Congo": "Republic of the Congo",
-    "Eswatini": "Swaziland",
-    "Myanmar": "Myanmar",
-    "Timor-Leste": "East Timor",
-    "Macedonia": "Macedonia",
+    "United States of America": "United States of America",
+    "Czech Republic": "Czechia",
+    "Cote d'Ivoire": "Côte d'Ivoire",
+    "Ivory Coast": "Côte d'Ivoire",
+    "Congo, Democratic Republic of the": "Dem. Rep. Congo",
+    "DR Congo": "Dem. Rep. Congo",
+    "Congo, Republic of the": "Congo",
+    "Eswatini": "eSwatini",
     "North Macedonia": "Macedonia",
-    "Bosnia and Herzegovina": "Bosnia and Herzegovina",
-    "Vatican City": "Vatican",
-    "Holy See": "Vatican",
-    "Bahamas": "The Bahamas",
-    "Gambia": "Gambia",
-    "Guinea-Bissau": "Guinea Bissau",
-    "Sao Tome and Principe": "São Tomé and Principe",
-    "Serbia": "Republic of Serbia",
-    "Tanzania": "United Republic of Tanzania",
+    "Bosnia and Herzegovina": "Bosnia and Herz.",
+    "Central African Republic": "Central African Rep.",
+    "Dominican Republic": "Dominican Rep.",
+    "Equatorial Guinea": "Eq. Guinea",
+    "Solomon Islands": "Solomon Is.",
+    "South Sudan": "S. Sudan",
+    "Palestine State": "Palestine",
   };
 
   function toGeoName(name) {
@@ -62,20 +59,26 @@
     if (pathsCache) return pathsCache;
     if (loadPromise) return loadPromise;
     loadPromise = (async () => {
-      await waitForLibraries();
-      const world = await fetch(WORLD_ATLAS_URL).then((r) => r.json());
-      const fc = window.topojson.feature(world, world.objects.countries);
-      const w = 800;
-      const h = 460;
-      const proj = window.d3.geoEqualEarth().fitSize([w - 12, h - 12], fc);
-      const path = window.d3.geoPath(proj);
-      const countries = fc.features
-        .map((f) => ({ name: f.properties.name, d: path(f) }))
-        .filter((p) => p.d);
-      const graticule = path(window.d3.geoGraticule10());
-      const sphere = path({ type: "Sphere" });
-      pathsCache = { countries, graticule, sphere, w, h };
-      return pathsCache;
+      try {
+        await waitForLibraries();
+        const world = await fetch(WORLD_ATLAS_URL).then((r) => r.json());
+        const fc = window.topojson.feature(world, world.objects.countries);
+        const w = 800;
+        const h = 460;
+        const proj = window.d3.geoEqualEarth().fitSize([w - 12, h - 12], fc);
+        const path = window.d3.geoPath(proj);
+        const countries = fc.features
+          .map((f) => ({ name: f.properties.name, d: path(f) }))
+          .filter((p) => p.d);
+        const graticule = path(window.d3.geoGraticule10());
+        const sphere = path({ type: "Sphere" });
+        pathsCache = { countries, graticule, sphere, w, h };
+        return pathsCache;
+      } catch (e) {
+        // Don't poison the cache — let future calls retry.
+        loadPromise = null;
+        throw e;
+      }
     })();
     return loadPromise;
   }

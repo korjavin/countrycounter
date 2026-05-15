@@ -11,6 +11,7 @@
     add("AF", [
       "Algeria","Angola","Benin","Botswana","Burkina Faso","Burundi","Cabo Verde",
       "Cameroon","Central African Republic","Chad","Comoros","Congo","DR Congo",
+      "Congo, Republic of the","Congo, Democratic Republic of the",
       "Djibouti","Egypt","Equatorial Guinea","Eritrea","Eswatini","Ethiopia","Gabon",
       "Gambia","Ghana","Guinea","Guinea-Bissau","Ivory Coast","Cote d'Ivoire","Kenya",
       "Lesotho","Liberia","Libya","Madagascar","Malawi","Mali","Mauritania",
@@ -33,7 +34,7 @@
       "Cambodia","China","Georgia","India","Indonesia","Iran","Iraq","Israel",
       "Japan","Jordan","Kazakhstan","Kuwait","Kyrgyzstan","Laos","Lebanon",
       "Malaysia","Maldives","Mongolia","Myanmar","Nepal","North Korea","Oman",
-      "Pakistan","Palestine","Philippines","Qatar","Saudi Arabia","Singapore",
+      "Pakistan","Palestine","Palestine State","Philippines","Qatar","Saudi Arabia","Singapore",
       "South Korea","Sri Lanka","Syria","Taiwan","Tajikistan","Thailand",
       "Timor-Leste","Turkey","Turkmenistan","United Arab Emirates","Uzbekistan",
       "Vietnam","Yemen",
@@ -43,7 +44,7 @@
       "Cuba","Dominica","Dominican Republic","El Salvador","Grenada","Guatemala",
       "Haiti","Honduras","Jamaica","Mexico","Nicaragua","Panama",
       "Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines",
-      "Trinidad and Tobago","United States",
+      "Trinidad and Tobago","United States","United States of America",
     ]);
     add("SA", [
       "Argentina","Bolivia","Brazil","Chile","Colombia","Ecuador","Guyana",
@@ -57,7 +58,7 @@
     return m;
   })();
 
-  const CONTINENT_TOTALS = { AF: 54, EU: 46, AS: 47, NA: 23, SA: 12, OC: 14 };
+  const CONTINENT_TOTALS = { AF: 54, EU: 46, AS: 48, NA: 23, SA: 12, OC: 14 };
   const CONTINENT_LABELS = {
     NA: "N.AMER", SA: "S.AMER", EU: "EUROPE",
     AF: "AFRICA", AS: "ASIA", OC: "OCEAN.",
@@ -104,6 +105,9 @@
       activeSuggest: 0,
       focused: false,
       lastAddedGeo: null,
+      lastAddedTimer: null,
+      pendingAdds: new Set(),
+      ready: false,
     };
 
     // ── DOM refs ──
@@ -149,7 +153,7 @@
     }
     applyTheme();
     if (tg && typeof tg.onEvent === "function") {
-      try { tg.onEvent("themeChanged", applyTheme); } catch (_) {}
+      tg.onEvent("themeChanged", applyTheme);
     }
 
     // ── Toast ──
@@ -220,7 +224,7 @@
       const count = state.visited.length;
       const total = totalCountries();
       const pct = total ? Math.round((count / total) * 100) : 0;
-      els.visitedCount.textContent = String(count).padStart(2, "0");
+      els.visitedCount.textContent = String(count).padStart(count >= 100 ? 3 : 2, "0");
       els.visitedDenom.textContent = String(total);
       els.visitedPct.textContent = pct + "%";
       els.visitedRemaining.textContent = (total - count) + " remaining";
@@ -279,16 +283,19 @@
 
     // ── Drawer render ──
     function renderContinents() {
-      const counts = { NA: 0, SA: 0, EU: 0, AF: 0, AS: 0, OC: 0 };
+      // Dedupe by canonical geo name so paired aliases (e.g. "Palestine" and
+      // "Palestine State", "Czechia" and "Czech Republic") count once and the
+      // total never exceeds CONTINENT_TOTALS.
+      const seen = { NA: new Set(), SA: new Set(), EU: new Set(), AF: new Set(), AS: new Set(), OC: new Set() };
       for (const v of state.visited) {
         const c = CONTINENT_OF[v.name];
-        if (c) counts[c]++;
+        if (c) seen[c].add(toGeoName(v.name));
       }
       els.continents.innerHTML = "";
       for (const k of CONTINENT_ORDER) {
-        const num = counts[k];
+        const num = seen[k].size;
         const den = CONTINENT_TOTALS[k];
-        const full = num === den;
+        const full = num >= den;
         const cell = document.createElement("div");
         cell.className = "cont" + (full ? " full" : "");
         cell.innerHTML =
@@ -401,9 +408,12 @@
           e.preventDefault();
           addCountry(s);
         });
+        // Toggle the .active class in place rather than re-rendering, so the
+        // node firing mouseenter isn't destroyed mid-event.
         opt.addEventListener("mouseenter", () => {
           state.activeSuggest = i;
-          renderSuggest();
+          const opts = els.suggest.querySelectorAll(".opt");
+          opts.forEach((o, j) => o.classList.toggle("active", j === i));
         });
         els.suggest.appendChild(opt);
       });
@@ -450,42 +460,62 @@
       } catch (e) {
         console.error("loadAllCountries failed", e);
         state.allCountries = [];
+        showToast("Country list failed to load", true);
       }
     }
 
     async function postCountry(name) {
       if (!userId) return true; // standalone mode: skip backend
-      const res = await fetch("/api/countries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: userId, country: name }),
-      });
-      return res.status === 201 || res.status === 200;
+      try {
+        const res = await fetch("/api/countries", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: userId, country: name }),
+        });
+        return res.status === 201 || res.status === 200;
+      } catch (e) {
+        console.error("postCountry failed", e);
+        return false;
+      }
     }
 
     async function deleteCountryAPI(name) {
       if (!userId) return true;
-      const res = await fetch("/api/countries", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: userId, country: name }),
-      });
-      return res.status === 200;
+      try {
+        const res = await fetch("/api/countries", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: userId, country: name }),
+        });
+        return res.status === 200;
+      } catch (e) {
+        console.error("deleteCountryAPI failed", e);
+        return false;
+      }
     }
 
     // ── Actions ──
     async function addCountry(name) {
       if (!name) return;
       const vSet = visitedSet();
-      if (vSet.has(name)) {
+      if (vSet.has(name) || state.pendingAdds.has(name)) {
         showToast("Already visited: " + name, true);
         return;
       }
-      const ok = await postCountry(name);
+      state.pendingAdds.add(name);
+      let ok;
+      try {
+        ok = await postCountry(name);
+      } finally {
+        state.pendingAdds.delete(name);
+      }
       if (!ok) {
         showToast("Failed to add " + name, true);
         return;
       }
+      // Re-check after the POST returns: a concurrent add for the same name
+      // (e.g. from /location in the bot) may have already updated state.
+      if (visitedSet().has(name)) return;
       state.visited.unshift({ name: name, addedAt: Date.now() });
       state.lastAddedGeo = toGeoName(name);
       state.query = "";
@@ -493,9 +523,17 @@
       state.activeSuggest = 0;
       showToast("Added — " + name);
       render();
-      setTimeout(() => {
-        state.lastAddedGeo = null;
-        renderMap();
+      // Cancel any prior pending clear so a fresh add doesn't get its
+      // highlight cut short by an earlier country's timer.
+      if (state.lastAddedTimer) clearTimeout(state.lastAddedTimer);
+      const geoForThisAdd = state.lastAddedGeo;
+      state.lastAddedTimer = setTimeout(() => {
+        state.lastAddedTimer = null;
+        // Only clear if no newer add has replaced the highlight in the meantime.
+        if (state.lastAddedGeo === geoForThisAdd) {
+          state.lastAddedGeo = null;
+          renderMap();
+        }
       }, LAST_ADDED_MS);
     }
 
@@ -512,13 +550,24 @@
 
     async function clearAll() {
       if (state.visited.length === 0) return;
-      const n = state.visited.length;
       const names = state.visited.map((v) => v.name);
+      const failed = [];
       for (const nm of names) {
-        await deleteCountryAPI(nm);
+        const ok = await deleteCountryAPI(nm);
+        if (ok) {
+          state.visited = state.visited.filter((v) => v.name !== nm);
+        } else {
+          failed.push(nm);
+        }
       }
-      state.visited = [];
-      showToast("Cleared " + n + " countries");
+      if (failed.length === 0) {
+        showToast("Cleared " + names.length + " countries");
+      } else {
+        showToast(
+          "Cleared " + (names.length - failed.length) + ", " + failed.length + " failed",
+          true,
+        );
+      }
       render();
     }
 
@@ -559,12 +608,18 @@
       renderDrawer();
     });
     els.sortCycleBtn.addEventListener("click", cycleSort);
-    els.shareBtn.addEventListener("click", () => {
+    els.shareBtn.addEventListener("click", async () => {
       const text = state.visited.map((v) => v.name).join("\n");
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).catch(() => {});
+      if (!navigator.clipboard || !navigator.clipboard.writeText) {
+        showToast("Clipboard unavailable", true);
+        return;
       }
-      showToast("Copied " + state.visited.length + " countries");
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast("Copied " + state.visited.length + " countries");
+      } catch (_) {
+        showToast("Copy failed", true);
+      }
     });
 
     els.countryInput.addEventListener("input", (e) => {
@@ -625,6 +680,7 @@
       await loadAllCountries();
       await loadVisited();
       render();
+      state.ready = true;
     })();
 
     // Expose for tests / debugging.

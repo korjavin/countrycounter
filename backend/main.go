@@ -317,6 +317,11 @@ func (s *server) addCountry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(req.Country) > 100 {
+		http.Error(w, "country name too long", http.StatusBadRequest)
+		return
+	}
+
 	if err := s.repo.Add(req.UserID, req.Country); err != nil {
 		log.Printf("repo.Add failed for user %d / %s: %v", req.UserID, req.Country, err)
 		http.Error(w, "Failed to save country", http.StatusInternalServerError)
@@ -340,6 +345,11 @@ func (s *server) deleteCountry(w http.ResponseWriter, r *http.Request) {
 
 	if req.UserID == 0 || req.Country == "" {
 		http.Error(w, "userId and country are required", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Country) > 100 {
+		http.Error(w, "country name too long", http.StatusBadRequest)
 		return
 	}
 

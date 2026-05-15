@@ -44,6 +44,7 @@ body {
   text-transform: uppercase;
   color: var(--fg-2);
 }
+.app-header .meta .meta-version { margin-right: 8px; }
 
 /* ===== Quick actions strip ===== */
 .qa {
